@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper 5: Branch PMU Placement - Emami 2010</title>
+<style>
+  :root {
+    --pmu-red: #e74c3c;
+    --obs-green: #27ae60;
+    --unobs-gray: #95a5a6;
+    --branch-pmu: #e94560;
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card: #0f3460;
+    --text: #e8e8e8;
+    --accent: #e94560;
+    --border: #2a3a5c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .back-link {
+    display: inline-block; padding: 8px 16px; color: var(--accent);
+    text-decoration: none; font-size: 0.85rem; background: var(--surface);
+  }
+  .back-link:hover { text-decoration: underline; }
+  header {
+    background: linear-gradient(135deg, var(--surface), var(--card));
+    padding: 24px 32px; border-bottom: 2px solid var(--accent);
+  }
+  header h1 { font-size: 1.4rem; color: #fff; }
+  header p { font-size: 0.85rem; color: #aab; margin-top: 4px; }
+  header a { color: var(--accent); font-size: 0.8rem; }
+
+  .tab-bar {
+    display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 14px 28px; cursor: pointer; background: none; border: none;
+    color: #889; font-size: 0.95rem; font-weight: 600;
+    transition: all 0.2s; border-bottom: 3px solid transparent;
+  }
+  .tab-btn:hover { color: #ccc; }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .explanation {
+    max-width: 900px; margin: 0 auto; padding: 32px; line-height: 1.8;
+  }
+  .explanation h2 { color: var(--accent); margin: 24px 0 12px; font-size: 1.2rem; }
+  .explanation h3 { color: #ccd; margin: 16px 0 8px; }
+  .explanation p, .explanation li { color: #bbc; margin-bottom: 8px; }
+  .explanation ul { padding-left: 24px; }
+  .math-block {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px 20px; margin: 12px 0; font-family: 'Courier New', monospace;
+    font-size: 0.9rem; overflow-x: auto; color: #dde;
+  }
+  .highlight-box {
+    background: rgba(233, 69, 96, 0.1); border-left: 4px solid var(--accent);
+    padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0;
+  }
+  table.data-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  table.data-table th, table.data-table td {
+    padding: 8px 12px; border: 1px solid var(--border); text-align: center;
+  }
+  table.data-table th { background: var(--card); color: var(--accent); }
+
+  .demo-container { display: flex; height: calc(100vh - 120px); }
+  .demo-sidebar {
+    width: 340px; background: var(--surface); border-right: 1px solid var(--border);
+    padding: 20px; overflow-y: auto; flex-shrink: 0;
+  }
+  .demo-main { flex: 1; position: relative; }
+  canvas#network { width: 100%; height: 100%; display: block; cursor: pointer; }
+
+  .ctrl-group { margin-bottom: 16px; }
+  .ctrl-group label {
+    display: block; font-size: 0.8rem; color: #889; margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  select, button {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--card); color: var(--text);
+    font-size: 0.9rem; cursor: pointer; transition: all 0.2s;
+  }
+  select:hover, button:hover { border-color: var(--accent); }
+  button.primary {
+    background: var(--accent); border-color: var(--accent);
+    color: white; font-weight: 600;
+  }
+  button.primary:hover { background: #d63851; }
+  button.secondary { background: transparent; border-color: var(--border); }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .stat-card { background: var(--card); border-radius: 6px; padding: 10px; text-align: center; }
+  .stat-card .value { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: 0.7rem; color: #889; text-transform: uppercase; }
+
+  .legend { margin-top: 16px; font-size: 0.8rem; }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .legend-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #333; flex-shrink: 0; }
+  .legend-line { width: 24px; height: 4px; border-radius: 2px; flex-shrink: 0; }
+  .pmu-list {
+    margin-top: 8px; font-size: 0.85rem; color: #aab;
+    background: var(--card); padding: 8px 12px; border-radius: 6px; min-height: 32px;
+  }
+  .log-area {
+    margin-top: 12px; background: #0d1117; border-radius: 6px; padding: 10px;
+    font-family: 'Courier New', monospace; font-size: 0.75rem; color: #7ee;
+    max-height: 200px; overflow-y: auto;
+  }
+  .tooltip {
+    position: absolute; background: rgba(15, 52, 96, 0.95); border: 1px solid var(--accent);
+    border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; pointer-events: none;
+    display: none; z-index: 100;
+  }
+  .mode-desc {
+    background: var(--card); border-radius: 6px; padding: 10px 12px;
+    font-size: 0.8rem; color: #aab; margin-top: 8px; line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../../../">&larr; 論文一覧</a>
+
+<header>
+  <h1>Paper 5: Branch PMU Placement Model</h1>
+  <p>R. Emami, A. Abur (2010) &mdash; IEEE Trans. Power Systems, Vol. 25, No. 2</p>
+  <a href="https://doi.org/10.1109/TPWRS.2009.2036474" target="_blank">DOI: 10.1109/TPWRS.2009.2036474</a>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('explain')">解説</button>
+  <button class="tab-btn" onclick="showTab('demo')">デモ</button>
+</div>
+
+<!-- ===== 解説タブ ===== -->
+<div id="tab-explain" class="tab-content active">
+<div class="explanation">
+
+<h2>1. 論文の背景と目的</h2>
+<p>
+  従来のPMU配置モデルでは、PMUは<strong>バス</strong>に設置され、
+  そのバスの電圧フェーザーと全ての接続ブランチの電流フェーザーを測定するモデルでした。
+  Emami & Abur (2010) は、PMUを<strong>ブランチ（送電線）</strong>に設置する
+  新しいモデルを提案しました。
+</p>
+
+<h2>2. ブランチPMUモデル</h2>
+<div class="highlight-box">
+  <strong>ブランチPMU：</strong> 送電線(i,j)に設置されたPMUは、
+  その線路の電流フェーザー I<sub>ij</sub> と、
+  両端のバスの電圧フェーザー V<sub>i</sub>, V<sub>j</sub> を測定します。
+</div>
+<p>
+  ブランチPMUの観測ルール：
+</p>
+<ul>
+  <li><strong>Rule 1:</strong> ブランチPMUが設置された送電線の両端バスが直接観測される</li>
+  <li><strong>Rule 2:</strong> あるバスの電圧が既知で、接続するブランチの電流が既知なら、
+    オームの法則により対向バスの電圧が計算可能</li>
+</ul>
+
+<h2>3. 数学的定式化</h2>
+<p>決定変数はブランチごとに定義されます：</p>
+<div class="math-block">
+y<sub>ij</sub> = 1  if ブランチ(i,j)にPMUを設置<br>
+y<sub>ij</sub> = 0  otherwise
+</div>
+
+<p>バス i の観測条件：</p>
+<div class="math-block">
+<strong>最小化:</strong>  &Sigma; y<sub>ij</sub>  (全ブランチ(i,j)について)<br>
+<strong>制約条件:</strong>  各バス i について、i を端点とするブランチの少なくとも1つにPMUが設置<br>
+  &Sigma;<sub>j:(i,j)&isin;E</sub> y<sub>ij</sub> &ge; 1  &forall; i &isin; V<br>
+<strong>変数:</strong>  y<sub>ij</sub> &isin; {0, 1}
+</div>
+
+<h2>4. バスPMUとの比較</h2>
+<div class="highlight-box">
+  <strong>バスPMU：</strong> 1台で設置バス+全隣接バスを観測。チャネル数 = 接続ブランチ数。コスト高。<br>
+  <strong>ブランチPMU：</strong> 1台で両端バスのみ観測。1チャネル。コスト低。ただし台数は増加。
+</div>
+<p>
+  ブランチPMUは個々のコストが安いため、台数が増えても総コストが削減される場合があります。
+  また、ブランチPMUはCT（変流器）の近くに設置できるため、設置が容易な場合があります。
+</p>
+
+<h2>5. ベンチマーク結果</h2>
+<table class="data-table">
+  <tr><th>テスト系統</th><th>バス数</th><th>ブランチ数</th><th>バスPMU数</th><th>ブランチPMU数</th></tr>
+  <tr><td>IEEE 14-bus</td><td>14</td><td>20</td><td>4</td><td>7</td></tr>
+  <tr><td>IEEE 30-bus</td><td>30</td><td>41</td><td>10</td><td>15</td></tr>
+  <tr><td>IEEE 57-bus</td><td>57</td><td>80</td><td>17</td><td>26</td></tr>
+  <tr><td>IEEE 118-bus</td><td>118</td><td>186</td><td>32</td><td>53</td></tr>
+</table>
+
+<div class="highlight-box">
+  <strong>重要な知見：</strong> ブランチPMUはバスPMUの約1.6〜1.8倍の台数が必要ですが、
+  1台あたりのチャネル数が少なく（1チャネル vs 複数チャネル）、
+  総測定チャネル数やコストでは同等以下になりえます。
+</div>
+
+</div>
+</div>
+
+<!-- ===== デモタブ ===== -->
+<div id="tab-demo" class="tab-content">
+<div class="demo-container">
+  <div class="demo-sidebar">
+    <div class="mode-desc">
+      <strong>操作方法：</strong> ブランチ（送電線）をクリックしてPMUを設置/撤去します。
+      ブランチPMUは両端バスを観測します。
+    </div>
+
+    <div class="ctrl-group" style="display:flex;gap:8px;margin-top:12px">
+      <button class="primary" onclick="runOptimal()" style="flex:1">最適配置</button>
+      <button class="secondary" onclick="clearAll()" style="flex:1">全撤去</button>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value" id="statPMU">0</div>
+        <div class="label">ブランチPMU</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statObs">0</div>
+        <div class="label">観測バス</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statTotal">14</div>
+        <div class="label">全バス</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statRate">0%</div>
+        <div class="label">観測率</div>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <label>PMU設置ブランチ</label>
+      <div class="pmu-list" id="pmuList">なし</div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-line" style="background:var(--accent)"></div>PMU設置ブランチ</div>
+      <div class="legend-item"><div class="legend-line" style="background:#3a4a6c"></div>通常ブランチ</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--obs-green)"></div>観測済みバス</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--unobs-gray)"></div>未観測バス</div>
+    </div>
+
+    <div class="ctrl-group" style="margin-top:12px">
+      <label>実行ログ</label>
+      <div class="log-area" id="logArea">Ready. ブランチをクリックしてPMUを設置/撤去できます。</div>
+    </div>
+  </div>
+
+  <div class="demo-main">
+    <canvas id="network"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+</div>
+</div>
+
+<script>
+const N = 14;
+const BRANCHES = [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],
+                   [6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]];
+const BUS_POS = {
+  1:[80,350], 2:[200,400], 3:[350,400], 4:[350,280], 5:[200,280],
+  6:[80,180], 7:[250,200], 8:[250,120], 9:[400,180], 10:[480,180],
+  11:[150,100], 12:[80,60], 13:[200,60], 14:[400,80]
+};
+
+// One known optimal: 7 branch PMUs
+const OPTIMAL_BRANCHES = [[1,2],[2,3],[4,5],[5,6],[7,8],[9,10],[13,14]];
+
+let branchPMU = {};  // "a-b" -> true/false
+for (const [a, b] of BRANCHES) branchPMU[a + '-' + b] = false;
+
+let canvas, ctx;
+let hoveredBranch = null;
+let busPositions = {};
+
+function brKey(a, b) { return Math.min(a,b) + '-' + Math.max(a,b); }
+
+function checkObservability() {
+  const observed = new Set();
+  const pmuBranches = [];
+  for (const [a, b] of BRANCHES) {
+    const k = a + '-' + b;
+    if (branchPMU[k]) {
+      observed.add(a);
+      observed.add(b);
+      pmuBranches.push([a, b]);
+    }
+  }
+  return { observed, pmuBranches, complete: observed.size === N };
+}
+
+window.addEventListener('load', () => {
+  canvas = document.getElementById('network');
+  ctx = canvas.getContext('2d');
+  canvas.addEventListener('click', onCanvasClick);
+  canvas.addEventListener('mousemove', onCanvasMove);
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+  updateStats();
+});
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  computePositions();
+  draw();
+}
+
+function computePositions() {
+  const w = canvas.width / devicePixelRatio;
+  const h = canvas.height / devicePixelRatio;
+  const xs = Object.values(BUS_POS).map(p => p[0]);
+  const ys = Object.values(BUS_POS).map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const pad = 60;
+  busPositions = {};
+  for (const [bus, [px, py]] of Object.entries(BUS_POS)) {
+    busPositions[bus] = [
+      pad + (px - minX) / (maxX - minX || 1) * (w - 2*pad),
+      pad + (py - minY) / (maxY - minY || 1) * (h - 2*pad)
+    ];
+  }
+}
+
+function showTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['explain','demo'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach((t, i) => {
+    t.classList.toggle('active', ['tab-explain','tab-demo'][i] === 'tab-' + name);
+  });
+  if (name === 'demo') setTimeout(resizeCanvas, 50);
+}
+
+function draw() {
+  const w = canvas.width / devicePixelRatio;
+  const h = canvas.height / devicePixelRatio;
+  ctx.clearRect(0, 0, w, h);
+
+  const { observed } = checkObservability();
+
+  // Draw edges
+  for (const [a, b] of BRANCHES) {
+    const pa = busPositions[a], pb = busPositions[b];
+    if (!pa || !pb) continue;
+    const k = a + '-' + b;
+    const isPMU = branchPMU[k];
+    const isHovered = hoveredBranch === k;
+
+    // Highlight on hover
+    if (isHovered) {
+      ctx.strokeStyle = 'rgba(233,69,96,0.4)';
+      ctx.lineWidth = 12;
+      ctx.beginPath();
+      ctx.moveTo(pa[0], pa[1]);
+      ctx.lineTo(pb[0], pb[1]);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = isPMU ? '#e94560' : '#3a4a6c';
+    ctx.lineWidth = isPMU ? 5 : 2;
+    ctx.beginPath();
+    ctx.moveTo(pa[0], pa[1]);
+    ctx.lineTo(pb[0], pb[1]);
+    ctx.stroke();
+
+    // PMU marker on branch midpoint
+    if (isPMU) {
+      const mx = (pa[0] + pb[0]) / 2;
+      const my = (pa[1] + pb[1]) / 2;
+      ctx.beginPath();
+      ctx.arc(mx, my, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#e94560';
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 8px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('P', mx, my);
+    }
+  }
+
+  // Draw nodes
+  const R = 22;
+  for (let bus = 1; bus <= N; bus++) {
+    const p = busPositions[bus];
+    if (!p) continue;
+    const isObs = observed.has(bus);
+
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], R, 0, Math.PI * 2);
+    ctx.fillStyle = isObs ? '#27ae60' : '#555e6e';
+    ctx.fill();
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(bus, p[0], p[1]);
+  }
+
+  // Title
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillStyle = 'rgba(233,69,96,0.7)';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText('Branch PMU Model - Click branches to place PMUs', 10, 10);
+}
+
+function getBranchAt(x, y) {
+  let bestDist = 15;
+  let bestBranch = null;
+  for (const [a, b] of BRANCHES) {
+    const pa = busPositions[a], pb = busPositions[b];
+    if (!pa || !pb) continue;
+    const dist = pointToSegmentDist(x, y, pa[0], pa[1], pb[0], pb[1]);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestBranch = a + '-' + b;
+    }
+  }
+  return bestBranch;
+}
+
+function pointToSegmentDist(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len2 = dx*dx + dy*dy;
+  if (len2 === 0) return Math.sqrt((px-x1)*(px-x1) + (py-y1)*(py-y1));
+  let t = ((px-x1)*dx + (py-y1)*dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  const cx = x1 + t*dx, cy = y1 + t*dy;
+  return Math.sqrt((px-cx)*(px-cx) + (py-cy)*(py-cy));
+}
+
+function onCanvasClick(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const branch = getBranchAt(x, y);
+  if (branch) {
+    branchPMU[branch] = !branchPMU[branch];
+    updateStats();
+    draw();
+    const [a, b] = branch.split('-');
+    log('Branch (' + a + ',' + b + '): PMU ' + (branchPMU[branch] ? '設置' : '撤去'));
+  }
+}
+
+function onCanvasMove(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const branch = getBranchAt(x, y);
+  if (branch !== hoveredBranch) {
+    hoveredBranch = branch;
+    draw();
+    const tip = document.getElementById('tooltip');
+    if (branch) {
+      const [a, b] = branch.split('-').map(Number);
+      tip.innerHTML = '<strong>Branch (' + a + ', ' + b + ')</strong><br>PMU: ' +
+        (branchPMU[branch] ? 'Yes' : 'No') + '<br>観測バス: ' + a + ', ' + b;
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX - canvas.parentElement.getBoundingClientRect().left + 15) + 'px';
+      tip.style.top = (e.clientY - canvas.parentElement.getBoundingClientRect().top + 15) + 'px';
+    } else {
+      tip.style.display = 'none';
+    }
+  }
+}
+
+function runOptimal() {
+  for (const [a, b] of BRANCHES) branchPMU[a + '-' + b] = false;
+  for (const [a, b] of OPTIMAL_BRANCHES) branchPMU[a + '-' + b] = true;
+  updateStats();
+  draw();
+  const labels = OPTIMAL_BRANCHES.map(([a,b]) => '(' + a + ',' + b + ')');
+  log('最適配置: ' + OPTIMAL_BRANCHES.length + ' branch PMUs at ' + labels.join(', '));
+}
+
+function clearAll() {
+  for (const [a, b] of BRANCHES) branchPMU[a + '-' + b] = false;
+  updateStats();
+  draw();
+  log('全PMU撤去');
+}
+
+function updateStats() {
+  const { observed, pmuBranches, complete } = checkObservability();
+  document.getElementById('statPMU').textContent = pmuBranches.length;
+  document.getElementById('statObs').textContent = observed.size;
+  document.getElementById('statRate').textContent = Math.round(observed.size / N * 100) + '%';
+  document.getElementById('statRate').style.color = complete ? 'var(--obs-green)' : 'var(--accent)';
+  if (pmuBranches.length > 0) {
+    document.getElementById('pmuList').textContent =
+      pmuBranches.map(([a,b]) => '(' + a + ',' + b + ')').join(', ');
+  } else {
+    document.getElementById('pmuList').textContent = 'なし';
+  }
+}
+
+function log(msg) {
+  const el = document.getElementById('logArea');
+  const time = new Date().toLocaleTimeString();
+  el.innerHTML += '\n[' + time + '] ' + msg;
+  el.scrollTop = el.scrollHeight;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper 6: PMU Placement with Conventional Measurements - Jin et al. 2022</title>
+<style>
+  :root {
+    --pmu-red: #e74c3c;
+    --obs-green: #27ae60;
+    --unobs-gray: #95a5a6;
+    --conv-blue: #3498db;
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card: #0f3460;
+    --text: #e8e8e8;
+    --accent: #e94560;
+    --border: #2a3a5c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  a.back-link {
+    display: inline-block;
+    padding: 8px 16px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+    background: var(--surface);
+  }
+  a.back-link:hover { text-decoration: underline; }
+  header {
+    background: linear-gradient(135deg, var(--surface), var(--card));
+    padding: 24px 32px;
+    border-bottom: 2px solid var(--accent);
+  }
+  header h1 { font-size: 1.4rem; color: #fff; }
+  header p { font-size: 0.85rem; color: #aab; margin-top: 4px; }
+  header a { color: var(--accent); font-size: 0.8rem; }
+
+  .tab-bar {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 14px 28px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #889;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+  }
+  .tab-btn:hover { color: #ccc; }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .explanation {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px;
+    line-height: 1.8;
+  }
+  .explanation h2 {
+    color: var(--accent);
+    margin: 24px 0 12px;
+    font-size: 1.2rem;
+  }
+  .explanation h3 {
+    color: #ccd;
+    margin: 16px 0 8px;
+  }
+  .explanation p, .explanation li {
+    color: #bbc;
+    margin-bottom: 8px;
+  }
+  .explanation ul { padding-left: 24px; }
+  .math-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    overflow-x: auto;
+    color: #dde;
+  }
+  .highlight-box {
+    background: rgba(233, 69, 96, 0.1);
+    border-left: 4px solid var(--accent);
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+  }
+  table.data-table th, table.data-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  table.data-table th {
+    background: var(--card);
+    color: var(--accent);
+  }
+
+  .demo-container {
+    display: flex;
+    height: calc(100vh - 120px);
+  }
+  .demo-sidebar {
+    width: 340px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .demo-main {
+    flex: 1;
+    position: relative;
+  }
+  canvas#network {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .ctrl-group {
+    margin-bottom: 16px;
+  }
+  .ctrl-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: #889;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  select, button {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  select:hover, button:hover {
+    border-color: var(--accent);
+  }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 600;
+  }
+  button.primary:hover { background: #d63851; }
+  button.secondary {
+    background: transparent;
+    border-color: var(--border);
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-card .value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-card .label {
+    font-size: 0.7rem;
+    color: #889;
+    text-transform: uppercase;
+  }
+  .legend {
+    margin-top: 16px;
+    font-size: 0.8rem;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #333;
+    flex-shrink: 0;
+  }
+  .pmu-list {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #aab;
+    background: var(--card);
+    padding: 8px 12px;
+    border-radius: 6px;
+    min-height: 32px;
+  }
+  .conv-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 0.85rem;
+    color: #bbc;
+  }
+  .conv-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--conv-blue);
+  }
+  .section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 12px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tooltip {
+    position: absolute;
+    background: rgba(15, 52, 96, 0.95);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../../../">&larr; 論文一覧</a>
+
+<header>
+  <h1>Paper 6: 従来型測定を考慮したPMU最適配置</h1>
+  <p>T. Jin, G. Liu, S. Yang (2022) &mdash; IEEE Access</p>
+  <a href="https://doi.org/10.1109/ACCESS.2022.3175054" target="_blank">DOI: 10.1109/ACCESS.2022.3175054</a>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('explain')">解説</button>
+  <button class="tab-btn" onclick="showTab('demo')">デモ</button>
+</div>
+
+<!-- ===== 解説タブ ===== -->
+<div id="tab-explain" class="tab-content active">
+<div class="explanation">
+
+<h2>1. 論文の背景と目的</h2>
+<p>
+  電力系統には従来型の測定装置（電力潮流測定、電力注入測定など）が既に設置されています。
+  本論文は、これらの<strong>既存の従来型測定（Conventional Measurements）</strong>を
+  活用することで、完全観測性を達成するために必要なPMU数を削減する手法を提案しています。
+</p>
+
+<h2>2. 従来型測定の種類</h2>
+<div class="highlight-box">
+  <strong>電力注入測定（Power Injection）:</strong> バスにおける有効・無効電力の注入量を測定。
+  隣接バスの電圧が既知であれば、そのバスの電圧を推定可能。<br><br>
+  <strong>電力潮流測定（Power Flow）:</strong> 送電線上の有効・無効電力の潮流を測定。
+  一端の電圧が既知であれば、他端の電圧を推定可能。
+</div>
+
+<h2>3. 数学的定式化</h2>
+<p>従来型測定を考慮した拡張観測性モデル：</p>
+<div class="math-block">
+Minimize: &sum; x<sub>i</sub><br>
+Subject to: A &middot; x &ge; b<br><br>
+ここで、A は従来型測定を考慮した拡張接続行列<br>
+b<sub>i</sub> = 1 （従来型で未観測のバス）<br>
+b<sub>i</sub> = 0 （従来型で既に観測可能なバス）
+</div>
+
+<h3>観測性の伝播ルール</h3>
+<ul>
+  <li><strong>ルール1:</strong> PMU設置バスとその隣接バスは観測可能</li>
+  <li><strong>ルール2:</strong> 電力注入測定があるバスの、全隣接バスのうち1つを除いて観測可能であれば、残りの1バスも観測可能</li>
+  <li><strong>ルール3:</strong> 電力潮流測定がある送電線の一端が観測可能であれば、他端も観測可能</li>
+</ul>
+
+<h2>4. 主要な結果</h2>
+<table class="data-table">
+  <tr>
+    <th>テストシステム</th>
+    <th>従来型なし (PMU数)</th>
+    <th>従来型あり (PMU数)</th>
+    <th>削減率</th>
+  </tr>
+  <tr>
+    <td>IEEE 14-bus</td>
+    <td>4</td>
+    <td>2</td>
+    <td>50%</td>
+  </tr>
+  <tr>
+    <td>IEEE 30-bus</td>
+    <td>10</td>
+    <td>7</td>
+    <td>30%</td>
+  </tr>
+  <tr>
+    <td>IEEE 57-bus</td>
+    <td>17</td>
+    <td>11</td>
+    <td>35%</td>
+  </tr>
+  <tr>
+    <td>IEEE 118-bus</td>
+    <td>32</td>
+    <td>22</td>
+    <td>31%</td>
+  </tr>
+</table>
+
+<div class="highlight-box">
+  <strong>核心的な知見:</strong> 従来型測定を活用することで、IEEE 14-busでは
+  PMU数を4台から2台に50%削減可能。大規模系統でも30-35%の削減が達成される。
+</div>
+
+<h2>5. アルゴリズム</h2>
+<p>
+  本論文では整数線形計画法（ILP）を用いて最適化を行います。
+  従来型測定による観測性の伝播を反復的に適用し、
+  制約条件の右辺ベクトル b を更新することで、
+  必要なPMU数を最小化します。
+</p>
+
+</div>
+</div>
+
+<!-- ===== デモタブ ===== -->
+<div id="tab-demo" class="tab-content">
+<div class="demo-container">
+  <div class="demo-sidebar">
+    <div class="section-title">従来型測定の設定</div>
+    <p style="font-size:0.8rem; color:#889; margin-bottom:12px;">
+      既設の従来型測定を有効/無効にして、必要PMU数の変化を確認できます。
+    </p>
+
+    <div class="ctrl-group">
+      <label>電力注入測定 (Injection)</label>
+      <div id="injection-toggles"></div>
+    </div>
+
+    <div class="ctrl-group">
+      <label>電力潮流測定 (Flow)</label>
+      <div id="flow-toggles"></div>
+    </div>
+
+    <div class="ctrl-group" style="margin-top:16px;">
+      <button class="primary" onclick="enableAllConv()">全従来型を有効化</button>
+      <button class="secondary" onclick="disableAllConv()" style="margin-top:6px;">全従来型を無効化</button>
+    </div>
+
+    <div class="section-title">PMU配置</div>
+    <p style="font-size:0.8rem; color:#889; margin-bottom:8px;">
+      バスをクリックしてPMUを配置/除去できます。
+    </p>
+    <div class="pmu-list" id="pmu-list">PMU未配置</div>
+    <button class="secondary" onclick="autoPlace()" style="margin-top:8px;">最適配置を自動計算</button>
+    <button class="secondary" onclick="clearPMUs()" style="margin-top:6px;">PMUをクリア</button>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value" id="stat-pmu">0</div>
+        <div class="label">PMU数</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="stat-obs">0</div>
+        <div class="label">観測バス</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="stat-total">14</div>
+        <div class="label">全バス数</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="stat-conv">0</div>
+        <div class="label">従来型観測</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pmu-red)"></div>PMU設置バス</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--obs-green)"></div>観測可能バス</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--conv-blue)"></div>従来型で観測済</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--unobs-gray)"></div>未観測バス</div>
+    </div>
+  </div>
+
+  <div class="demo-main">
+    <canvas id="network"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+</div>
+</div>
+
+<script>
+// Tab logic
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  document.querySelectorAll('.tab-btn')[id === 'explain' ? 0 : 1].classList.add('active');
+  if (id === 'demo') requestAnimationFrame(() => { resizeCanvas(); draw(); });
+}
+
+// IEEE 14-bus
+const N = 14;
+const branches = [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],[6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]];
+const busCoords = {1:[80,350],2:[200,400],3:[350,400],4:[350,280],5:[200,280],6:[80,180],7:[250,200],8:[250,120],9:[400,180],10:[480,180],11:[150,100],12:[80,60],13:[200,60],14:[400,80]};
+
+// Adjacency
+const adj = {};
+for (let i = 1; i <= N; i++) adj[i] = [];
+branches.forEach(([a,b]) => { adj[a].push(b); adj[b].push(a); });
+
+// State
+let pmuBuses = new Set();
+let injectionMeas = new Set();  // buses with injection measurements
+let flowMeas = new Set();       // branches (as "a-b" strings) with flow measurements
+
+// Default conventional measurements
+const defaultInjections = [2, 4, 5, 6, 9, 13];
+const defaultFlows = [[1,2],[4,7],[5,6],[9,10],[9,14],[12,13]];
+
+// Build toggles
+function buildToggles() {
+  const injDiv = document.getElementById('injection-toggles');
+  for (let i = 1; i <= N; i++) {
+    const isDefault = defaultInjections.includes(i);
+    const div = document.createElement('div');
+    div.className = 'conv-toggle';
+    div.innerHTML = `<input type="checkbox" id="inj-${i}" ${isDefault ? 'checked' : ''} onchange="toggleInj(${i})"> <span>Bus ${i}</span>`;
+    injDiv.appendChild(div);
+    if (isDefault) injectionMeas.add(i);
+  }
+  const flowDiv = document.getElementById('flow-toggles');
+  defaultFlows.forEach(([a,b]) => {
+    const key = a + '-' + b;
+    const div = document.createElement('div');
+    div.className = 'conv-toggle';
+    div.innerHTML = `<input type="checkbox" id="flow-${key}" checked onchange="toggleFlow('${key}')"> <span>Branch ${a}-${b}</span>`;
+    flowDiv.appendChild(div);
+    flowMeas.add(key);
+  });
+  // Add a few non-default flows
+  [[2,3],[3,4],[6,11],[7,8],[10,11],[13,14]].forEach(([a,b]) => {
+    const key = a + '-' + b;
+    const div = document.createElement('div');
+    div.className = 'conv-toggle';
+    div.innerHTML = `<input type="checkbox" id="flow-${key}" onchange="toggleFlow('${key}')"> <span>Branch ${a}-${b}</span>`;
+    flowDiv.appendChild(div);
+  });
+}
+
+function toggleInj(bus) {
+  if (injectionMeas.has(bus)) injectionMeas.delete(bus);
+  else injectionMeas.add(bus);
+  updateObs();
+}
+function toggleFlow(key) {
+  if (flowMeas.has(key)) flowMeas.delete(key);
+  else flowMeas.add(key);
+  updateObs();
+}
+
+function enableAllConv() {
+  document.querySelectorAll('#injection-toggles input, #flow-toggles input').forEach(cb => {
+    cb.checked = true;
+    cb.dispatchEvent(new Event('change'));
+  });
+}
+function disableAllConv() {
+  injectionMeas.clear();
+  flowMeas.clear();
+  document.querySelectorAll('#injection-toggles input, #flow-toggles input').forEach(cb => cb.checked = false);
+  updateObs();
+}
+
+// Observability calculation
+function computeObservability() {
+  const observed = new Set();
+  const convObserved = new Set();
+
+  // Step 1: PMU direct observation
+  pmuBuses.forEach(b => {
+    observed.add(b);
+    adj[b].forEach(n => observed.add(n));
+  });
+
+  // Step 2: Flow measurement propagation
+  let changed = true;
+  while (changed) {
+    changed = false;
+    flowMeas.forEach(key => {
+      const [a, b] = key.split('-').map(Number);
+      if (observed.has(a) && !observed.has(b)) { observed.add(b); convObserved.add(b); changed = true; }
+      if (observed.has(b) && !observed.has(a)) { observed.add(a); convObserved.add(a); changed = true; }
+    });
+
+    // Step 3: Injection measurement propagation
+    injectionMeas.forEach(bus => {
+      const neighbors = adj[bus];
+      const unobs = neighbors.filter(n => !observed.has(bus) ? true : !observed.has(n));
+      // If bus is observed and all but one neighbor are observed
+      if (observed.has(bus)) {
+        const unobsNeighbors = neighbors.filter(n => !observed.has(n));
+        if (unobsNeighbors.length === 1) {
+          observed.add(unobsNeighbors[0]);
+          convObserved.add(unobsNeighbors[0]);
+          changed = true;
+        }
+      }
+    });
+  }
+
+  return { observed, convObserved };
+}
+
+function updateObs() {
+  const { observed, convObserved } = computeObservability();
+  document.getElementById('stat-pmu').textContent = pmuBuses.size;
+  document.getElementById('stat-obs').textContent = observed.size;
+  document.getElementById('stat-conv').textContent = convObserved.size;
+  document.getElementById('pmu-list').textContent = pmuBuses.size ? 'PMU: {' + [...pmuBuses].sort((a,b)=>a-b).join(', ') + '}' : 'PMU未配置';
+  draw();
+}
+
+function clearPMUs() {
+  pmuBuses.clear();
+  updateObs();
+}
+
+// Auto-place: greedy with conventional measurements
+function autoPlace() {
+  pmuBuses.clear();
+  // Try to find minimal set using greedy
+  let { observed } = computeObservability();
+  while (observed.size < N) {
+    let bestBus = -1, bestGain = -1;
+    for (let i = 1; i <= N; i++) {
+      if (pmuBuses.has(i)) continue;
+      pmuBuses.add(i);
+      const { observed: testObs } = computeObservability();
+      const gain = testObs.size - observed.size;
+      if (gain > bestGain) { bestGain = gain; bestBus = i; }
+      pmuBuses.delete(i);
+    }
+    if (bestBus === -1) break;
+    pmuBuses.add(bestBus);
+    ({ observed } = computeObservability());
+  }
+  updateObs();
+}
+
+// Canvas drawing
+const canvas = document.getElementById('network');
+const ctx = canvas.getContext('2d');
+let W, H, scale, offsetX, offsetY;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  W = rect.width;
+  H = rect.height;
+
+  const xs = Object.values(busCoords).map(c => c[0]);
+  const ys = Object.values(busCoords).map(c => c[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const rangeX = maxX - minX || 1, rangeY = maxY - minY || 1;
+  scale = Math.min((W - 120) / rangeX, (H - 120) / rangeY);
+  offsetX = (W - rangeX * scale) / 2 - minX * scale;
+  offsetY = (H - rangeY * scale) / 2 - minY * scale;
+}
+
+function busXY(bus) {
+  const [bx, by] = busCoords[bus];
+  return [bx * scale + offsetX, by * scale + offsetY];
+}
+
+function draw() {
+  const dpr = devicePixelRatio;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const { observed, convObserved } = computeObservability();
+
+  // Draw branches
+  branches.forEach(([a, b]) => {
+    const [x1, y1] = busXY(a);
+    const [x2, y2] = busXY(b);
+    const key1 = a + '-' + b, key2 = b + '-' + a;
+    const hasFlow = flowMeas.has(key1) || flowMeas.has(key2);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = hasFlow ? '#3498db88' : '#2a3a5c';
+    ctx.lineWidth = hasFlow ? 3 : 1.5;
+    ctx.stroke();
+
+    if (hasFlow) {
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+      ctx.fillStyle = '#3498db';
+      ctx.font = '10px monospace';
+      ctx.fillText('F', mx - 3, my - 6);
+    }
+  });
+
+  // Draw buses
+  for (let i = 1; i <= N; i++) {
+    const [x, y] = busXY(i);
+    const hasPMU = pmuBuses.has(i);
+    const isObs = observed.has(i);
+    const isConvObs = convObserved.has(i) && !hasPMU;
+    const hasInj = injectionMeas.has(i);
+
+    const r = hasPMU ? 22 : 18;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = hasPMU ? '#e74c3c' : isConvObs ? '#3498db' : isObs ? '#27ae60' : '#95a5a6';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = hasPMU ? 3 : 1.5;
+    ctx.stroke();
+
+    // Injection indicator
+    if (hasInj) {
+      ctx.beginPath();
+      ctx.arc(x + r - 2, y - r + 2, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#f39c12';
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 7px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('I', x + r - 2, y - r + 2);
+    }
+
+    // Bus label
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i, x, y);
+  }
+
+  // Status text
+  const allObs = observed.size === N;
+  ctx.fillStyle = allObs ? '#27ae60' : '#e94560';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(allObs ? '完全観測性達成!' : `未観測: ${N - observed.size}バス`, 20, 20);
+  ctx.fillStyle = '#889';
+  ctx.font = '12px sans-serif';
+  ctx.fillText(`PMU: ${pmuBuses.size}台 | 従来型観測: ${convObserved.size}バス`, 20, 44);
+}
+
+// Click handler
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  for (let i = 1; i <= N; i++) {
+    const [x, y] = busXY(i);
+    if (Math.hypot(mx - x, my - y) < 24) {
+      if (pmuBuses.has(i)) pmuBuses.delete(i);
+      else pmuBuses.add(i);
+      updateObs();
+      return;
+    }
+  }
+});
+
+// Tooltip
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const tt = document.getElementById('tooltip');
+  for (let i = 1; i <= N; i++) {
+    const [x, y] = busXY(i);
+    if (Math.hypot(mx - x, my - y) < 24) {
+      const { observed, convObserved } = computeObservability();
+      const status = pmuBuses.has(i) ? 'PMU設置' : convObserved.has(i) ? '従来型観測' : observed.has(i) ? 'PMU観測' : '未観測';
+      const hasInj = injectionMeas.has(i) ? ' | 注入測定あり' : '';
+      tt.innerHTML = `<strong>Bus ${i}</strong><br>${status}${hasInj}<br>隣接: [${adj[i].join(', ')}]`;
+      tt.style.display = 'block';
+      tt.style.left = (e.clientX - rect.left + 15) + 'px';
+      tt.style.top = (e.clientY - rect.top - 10) + 'px';
+      return;
+    }
+  }
+  tt.style.display = 'none';
+});
+
+// Init
+window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+buildToggles();
+resizeCanvas();
+updateObs();
+</script>
+</body>
+</html>

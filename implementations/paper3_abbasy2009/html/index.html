@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper 3: Unified PMU Placement with PMU Loss - Abbasy 2009</title>
+<style>
+  :root {
+    --pmu-red: #e74c3c;
+    --obs-green: #27ae60;
+    --unobs-gray: #95a5a6;
+    --redundant-blue: #3498db;
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card: #0f3460;
+    --text: #e8e8e8;
+    --accent: #e94560;
+    --border: #2a3a5c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .back-link {
+    display: inline-block;
+    padding: 8px 16px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+    background: var(--surface);
+  }
+  .back-link:hover { text-decoration: underline; }
+  header {
+    background: linear-gradient(135deg, var(--surface), var(--card));
+    padding: 24px 32px;
+    border-bottom: 2px solid var(--accent);
+  }
+  header h1 { font-size: 1.4rem; color: #fff; }
+  header p { font-size: 0.85rem; color: #aab; margin-top: 4px; }
+  header a { color: var(--accent); font-size: 0.8rem; }
+
+  .tab-bar {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 14px 28px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #889;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+  }
+  .tab-btn:hover { color: #ccc; }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .explanation {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px;
+    line-height: 1.8;
+  }
+  .explanation h2 {
+    color: var(--accent);
+    margin: 24px 0 12px;
+    font-size: 1.2rem;
+  }
+  .explanation h3 { color: #ccd; margin: 16px 0 8px; }
+  .explanation p, .explanation li { color: #bbc; margin-bottom: 8px; }
+  .explanation ul { padding-left: 24px; }
+  .math-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    overflow-x: auto;
+    color: #dde;
+  }
+  .highlight-box {
+    background: rgba(233, 69, 96, 0.1);
+    border-left: 4px solid var(--accent);
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+  }
+  table.data-table th, table.data-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  table.data-table th {
+    background: var(--card);
+    color: var(--accent);
+  }
+
+  .demo-container {
+    display: flex;
+    height: calc(100vh - 120px);
+  }
+  .demo-sidebar {
+    width: 340px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .demo-main { flex: 1; position: relative; }
+  canvas#network { width: 100%; height: 100%; display: block; }
+
+  .ctrl-group { margin-bottom: 16px; }
+  .ctrl-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: #889;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  select, button {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  select:hover, button:hover { border-color: var(--accent); }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 600;
+  }
+  button.primary:hover { background: #d63851; }
+  button.secondary { background: transparent; border-color: var(--border); }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-card .value { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: 0.7rem; color: #889; text-transform: uppercase; }
+
+  .legend { margin-top: 16px; font-size: 0.8rem; }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .legend-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #333; flex-shrink: 0; }
+  .pmu-list {
+    margin-top: 8px; font-size: 0.85rem; color: #aab;
+    background: var(--card); padding: 8px 12px; border-radius: 6px; min-height: 32px;
+  }
+  .log-area {
+    margin-top: 12px; background: #0d1117; border-radius: 6px; padding: 10px;
+    font-family: 'Courier New', monospace; font-size: 0.75rem; color: #7ee;
+    max-height: 200px; overflow-y: auto;
+  }
+  .tooltip {
+    position: absolute; background: rgba(15, 52, 96, 0.95); border: 1px solid var(--accent);
+    border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; pointer-events: none;
+    display: none; z-index: 100;
+  }
+  .mode-desc {
+    background: var(--card); border-radius: 6px; padding: 10px 12px;
+    font-size: 0.8rem; color: #aab; margin-top: 8px; line-height: 1.5;
+  }
+  .warning-badge {
+    display: inline-block;
+    background: #e74c3c;
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../../../">&larr; 論文一覧</a>
+
+<header>
+  <h1>Paper 3: Unified PMU Placement with PMU Loss Consideration</h1>
+  <p>N.H. Abbasy, H.M. Ismail (2009) &mdash; IEEE Trans. Power Systems, Vol. 24, No. 2</p>
+  <a href="https://doi.org/10.1109/TPWRS.2009.2016596" target="_blank">DOI: 10.1109/TPWRS.2009.2016596</a>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('explain')">解説</button>
+  <button class="tab-btn" onclick="showTab('demo')">デモ</button>
+</div>
+
+<!-- ===== 解説タブ ===== -->
+<div id="tab-explain" class="tab-content active">
+<div class="explanation">
+
+<h2>1. 論文の背景と目的</h2>
+<p>
+  従来のPMU配置問題は「正常状態」での完全観測性のみを保証していました。
+  しかし実運用では、PMUが故障する可能性があります。
+  Abbasy & Ismail (2009) は<strong>「N-1 PMU損失（Single PMU Loss）」</strong>を考慮した
+  統一的な定式化を提案しました。
+</p>
+<p>
+  N-1 PMU損失条件では、任意の1台のPMUが故障しても全てのバスが観測可能であることを要求します。
+  これは各バスが<strong>少なくとも2台のPMU</strong>によって観測される必要があることを意味します。
+</p>
+
+<h2>2. 定式化</h2>
+
+<h3>通常モード（Normal）</h3>
+<div class="math-block">
+<strong>最小化:</strong>  &Sigma; x<sub>i</sub>  (i = 1, ..., N)<br>
+<strong>制約条件:</strong>  f &middot; x &ge; 1  （各バスが1台以上のPMUで観測）<br>
+<strong>変数:</strong>  x<sub>i</sub> &isin; {0, 1}
+</div>
+
+<h3>N-1 PMU損失モード</h3>
+<div class="math-block">
+<strong>最小化:</strong>  &Sigma; x<sub>i</sub>  (i = 1, ..., N)<br>
+<strong>制約条件:</strong>  f &middot; x &ge; 2  （各バスが2台以上のPMUで観測）<br>
+<strong>変数:</strong>  x<sub>i</sub> &isin; {0, 1}
+</div>
+
+<div class="highlight-box">
+  <strong>核心的アイデア：</strong> 制約の右辺を 1 から 2 に変更するだけで、
+  N-1冗長性が保証されます。任意の1台のPMUが故障しても、
+  各バスはまだ少なくとも1台のPMUで観測可能です。
+</div>
+
+<h3>統一定式化</h3>
+<p>
+  より一般的に、右辺を b<sub>i</sub> とすることで、バスごとに異なる冗長度を要求できます：
+</p>
+<div class="math-block">
+f &middot; x &ge; b<br>
+b<sub>i</sub> = 1: 通常観測<br>
+b<sub>i</sub> = 2: 単一PMU損失に耐性<br>
+b<sub>i</sub> &ge; k+1: k台同時PMU損失に耐性
+</div>
+
+<h2>3. 解法</h2>
+<p>
+  ILPソルバー（整数線形計画法）により厳密解を求めます。
+  ZIバスを考慮する場合は、KCLによる追加の観測伝搬ルールも適用されます。
+</p>
+
+<h2>4. ベンチマーク結果</h2>
+<table class="data-table">
+  <tr><th>テスト系統</th><th>Normal (b=1)</th><th>N-1 PMU Loss (b=2)</th><th>PMU増加率</th></tr>
+  <tr><td>IEEE 14-bus</td><td>4</td><td>9</td><td>+125%</td></tr>
+  <tr><td>IEEE 30-bus</td><td>10</td><td>19</td><td>+90%</td></tr>
+  <tr><td>IEEE 57-bus</td><td>17</td><td>31</td><td>+82%</td></tr>
+  <tr><td>IEEE 118-bus</td><td>32</td><td>61</td><td>+91%</td></tr>
+</table>
+
+<div class="highlight-box">
+  <strong>重要な知見：</strong> N-1 PMU損失に対する冗長性を確保するには、
+  通常の約2倍のPMUが必要です。これは各バスの観測冗長度を2に引き上げるコストです。
+  実運用では、重要バスのみに冗長性を要求する混合アプローチも有効です。
+</div>
+
+</div>
+</div>
+
+<!-- ===== デモタブ ===== -->
+<div id="tab-demo" class="tab-content">
+<div class="demo-container">
+  <div class="demo-sidebar">
+    <div class="ctrl-group">
+      <label>観測モード</label>
+      <select id="modeSelect" onchange="onModeChange()">
+        <option value="normal">Normal (b &ge; 1)</option>
+        <option value="n1">N-1 PMU Loss (b &ge; 2)</option>
+      </select>
+    </div>
+
+    <div class="mode-desc" id="modeDesc">
+      通常モード：各バスが少なくとも1台のPMUで観測されればOK。
+    </div>
+
+    <div class="ctrl-group" style="display:flex;gap:8px;margin-top:12px">
+      <button class="primary" onclick="runOptimal()" style="flex:1">最適配置</button>
+      <button class="secondary" onclick="clearAll()" style="flex:1">全撤去</button>
+    </div>
+
+    <div class="ctrl-group" id="simLossGroup" style="display:none">
+      <label>PMU故障シミュレーション</label>
+      <select id="lossSelect" onchange="onLossChange()">
+        <option value="none">故障なし</option>
+      </select>
+      <div class="mode-desc" style="margin-top:4px;font-size:0.75rem" id="lossDesc"></div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value" id="statPMU">0</div>
+        <div class="label">PMU数</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statObs">0</div>
+        <div class="label">観測バス</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statTotal">14</div>
+        <div class="label">全バス</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statMinRedundancy">0</div>
+        <div class="label">最小冗長度</div>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <label>PMU設置バス</label>
+      <div class="pmu-list" id="pmuList">なし</div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pmu-red)"></div>PMU設置</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3498db"></div>冗長観測 (d &ge; 2)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--obs-green)"></div>観測済み (d = 1)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--unobs-gray)"></div>未観測 (d = 0)</div>
+    </div>
+
+    <div class="ctrl-group" style="margin-top:12px">
+      <label>実行ログ</label>
+      <div class="log-area" id="logArea">Ready. バスをクリックしてPMUを設置/撤去できます。</div>
+    </div>
+  </div>
+
+  <div class="demo-main">
+    <canvas id="network"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+</div>
+</div>
+
+<script>
+const N = 14;
+const BRANCHES = [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],
+                   [6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]];
+const BUS_POS = {
+  1:[80,350], 2:[200,400], 3:[350,400], 4:[350,280], 5:[200,280],
+  6:[80,180], 7:[250,200], 8:[250,120], 9:[400,180], 10:[480,180],
+  11:[150,100], 12:[80,60], 13:[200,60], 14:[400,80]
+};
+
+const OPTIMAL = {
+  normal: [2, 6, 7, 9],
+  n1: [1, 2, 3, 5, 6, 8, 9, 10, 13]
+};
+
+let pmuState = {};
+for (let i = 1; i <= N; i++) pmuState[i] = false;
+let failedPMU = null;
+let canvas, ctx;
+let hoveredBus = null;
+let busPositions = {};
+
+function buildAdj() {
+  const adj = {};
+  for (let i = 1; i <= N; i++) adj[i] = [];
+  for (const [a, b] of BRANCHES) { adj[a].push(b); adj[b].push(a); }
+  return adj;
+}
+const ADJ = buildAdj();
+
+function buildConnMatrix() {
+  const f = Array.from({length: N}, () => new Float64Array(N));
+  for (let i = 0; i < N; i++) f[i][i] = 1;
+  for (const [a, b] of BRANCHES) { f[a-1][b-1] = 1; f[b-1][a-1] = 1; }
+  return f;
+}
+
+function checkObservability() {
+  const mode = document.getElementById('modeSelect').value;
+  const threshold = mode === 'n1' ? 2 : 1;
+  const f = buildConnMatrix();
+  const x = new Float64Array(N);
+  const pmuBuses = [];
+  for (let i = 1; i <= N; i++) {
+    if (pmuState[i] && i !== failedPMU) { x[i-1] = 1; pmuBuses.push(i); }
+  }
+
+  const depth = new Float64Array(N);
+  const observed = new Set();
+  let minRedundancy = Infinity;
+  for (let i = 0; i < N; i++) {
+    let sum = 0;
+    for (let j = 0; j < N; j++) sum += f[i][j] * x[j];
+    depth[i] = sum;
+    if (sum >= 1) observed.add(i + 1);
+    minRedundancy = Math.min(minRedundancy, sum);
+  }
+
+  const satisfiesMode = Array.from({length: N}, (_, i) => depth[i] >= threshold);
+  const allSatisfied = satisfiesMode.every(v => v);
+
+  return { depth, observed, pmuBuses, complete: allSatisfied, minRedundancy, satisfiesMode };
+}
+
+window.addEventListener('load', () => {
+  canvas = document.getElementById('network');
+  ctx = canvas.getContext('2d');
+  canvas.addEventListener('click', onCanvasClick);
+  canvas.addEventListener('mousemove', onCanvasMove);
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+  updateStats();
+});
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  computePositions();
+  draw();
+}
+
+function computePositions() {
+  const w = canvas.width / devicePixelRatio;
+  const h = canvas.height / devicePixelRatio;
+  const xs = Object.values(BUS_POS).map(p => p[0]);
+  const ys = Object.values(BUS_POS).map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const pad = 60;
+  busPositions = {};
+  for (const [bus, [px, py]] of Object.entries(BUS_POS)) {
+    busPositions[bus] = [
+      pad + (px - minX) / (maxX - minX || 1) * (w - 2*pad),
+      pad + (py - minY) / (maxY - minY || 1) * (h - 2*pad)
+    ];
+  }
+}
+
+function showTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['explain','demo'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach((t, i) => {
+    t.classList.toggle('active', ['tab-explain','tab-demo'][i] === 'tab-' + name);
+  });
+  if (name === 'demo') setTimeout(resizeCanvas, 50);
+}
+
+function draw() {
+  const w = canvas.width / devicePixelRatio;
+  const h = canvas.height / devicePixelRatio;
+  ctx.clearRect(0, 0, w, h);
+
+  const { depth, observed, pmuBuses } = checkObservability();
+  const mode = document.getElementById('modeSelect').value;
+
+  // Draw edges
+  ctx.strokeStyle = '#3a4a6c';
+  ctx.lineWidth = 2;
+  for (const [a, b] of BRANCHES) {
+    const pa = busPositions[a], pb = busPositions[b];
+    if (!pa || !pb) continue;
+    ctx.beginPath();
+    ctx.moveTo(pa[0], pa[1]);
+    ctx.lineTo(pb[0], pb[1]);
+    ctx.stroke();
+  }
+
+  // Draw nodes
+  const R = 22;
+  for (let bus = 1; bus <= N; bus++) {
+    const p = busPositions[bus];
+    if (!p) continue;
+    const isPMU = pmuState[bus] && bus !== failedPMU;
+    const isFailed = pmuState[bus] && bus === failedPMU;
+    const d = depth[bus-1];
+
+    if (hoveredBus === bus) {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], R + 6, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(233,69,96,0.3)';
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], R, 0, Math.PI*2);
+    if (isFailed) {
+      ctx.fillStyle = '#555';
+      ctx.strokeStyle = '#e74c3c';
+      ctx.lineWidth = 3;
+    } else if (isPMU) {
+      ctx.fillStyle = '#e74c3c';
+      ctx.strokeStyle = '#222';
+      ctx.lineWidth = 2;
+    } else if (d >= 2) {
+      ctx.fillStyle = '#3498db';
+      ctx.strokeStyle = '#222';
+      ctx.lineWidth = 2;
+    } else if (d >= 1) {
+      ctx.fillStyle = '#27ae60';
+      ctx.strokeStyle = '#222';
+      ctx.lineWidth = 2;
+    } else {
+      ctx.fillStyle = '#555e6e';
+      ctx.strokeStyle = '#222';
+      ctx.lineWidth = 2;
+    }
+    ctx.fill();
+    ctx.stroke();
+
+    // Failed X marker
+    if (isFailed) {
+      ctx.strokeStyle = '#e74c3c';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(p[0]-8, p[1]-8); ctx.lineTo(p[0]+8, p[1]+8);
+      ctx.moveTo(p[0]+8, p[1]-8); ctx.lineTo(p[0]-8, p[1]+8);
+      ctx.stroke();
+    }
+
+    // Bus number
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(bus, p[0], p[1] - 4);
+
+    // Depth number
+    ctx.font = '9px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillText('d=' + d, p[0], p[1] + 10);
+  }
+
+  // Mode label
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillStyle = 'rgba(233,69,96,0.7)';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  const label = mode === 'normal' ? 'Normal (b >= 1)' : 'N-1 PMU Loss (b >= 2)';
+  ctx.fillText(label, 10, 10);
+  if (failedPMU) {
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillText('PMU ' + failedPMU + ' FAILED', 10, 30);
+  }
+}
+
+function getBusAt(x, y) {
+  for (let bus = 1; bus <= N; bus++) {
+    const p = busPositions[bus];
+    if (!p) continue;
+    const dx = x - p[0], dy = y - p[1];
+    if (dx*dx + dy*dy < 28*28) return bus;
+  }
+  return null;
+}
+
+function onCanvasClick(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const bus = getBusAt(x, y);
+  if (bus) {
+    pmuState[bus] = !pmuState[bus];
+    failedPMU = null;
+    updateLossSelect();
+    updateStats();
+    draw();
+    log('Bus ' + bus + ': PMU ' + (pmuState[bus] ? '設置' : '撤去'));
+  }
+}
+
+function onCanvasMove(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const bus = getBusAt(x, y);
+  if (bus !== hoveredBus) {
+    hoveredBus = bus;
+    draw();
+    const tip = document.getElementById('tooltip');
+    if (bus) {
+      const { depth } = checkObservability();
+      tip.innerHTML = '<strong>Bus ' + bus + '</strong><br>PMU: ' + (pmuState[bus]?'Yes':'No') +
+        (bus === failedPMU ? ' (FAILED)' : '') +
+        '<br>冗長度: ' + depth[bus-1] + '<br>隣接: ' + ADJ[bus].join(', ');
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX - canvas.parentElement.getBoundingClientRect().left + 15) + 'px';
+      tip.style.top = (e.clientY - canvas.parentElement.getBoundingClientRect().top + 15) + 'px';
+    } else {
+      tip.style.display = 'none';
+    }
+  }
+}
+
+function onModeChange() {
+  const mode = document.getElementById('modeSelect').value;
+  const desc = document.getElementById('modeDesc');
+  const simGroup = document.getElementById('simLossGroup');
+  if (mode === 'normal') {
+    desc.textContent = '通常モード：各バスが少なくとも1台のPMUで観測されればOK。制約: f \u00B7 x \u2265 1';
+    simGroup.style.display = 'none';
+    failedPMU = null;
+  } else {
+    desc.textContent = 'N-1 PMU損失モード：各バスが少なくとも2台のPMUで観測される必要があります。1台故障しても全バス観測可能。制約: f \u00B7 x \u2265 2';
+    simGroup.style.display = 'block';
+    updateLossSelect();
+  }
+  updateStats();
+  draw();
+  log('モード変更: ' + mode);
+}
+
+function updateLossSelect() {
+  const sel = document.getElementById('lossSelect');
+  const pmuBuses = [];
+  for (let i = 1; i <= N; i++) if (pmuState[i]) pmuBuses.push(i);
+  sel.innerHTML = '<option value="none">故障なし</option>';
+  for (const b of pmuBuses) {
+    sel.innerHTML += '<option value="' + b + '">Bus ' + b + ' のPMUが故障</option>';
+  }
+}
+
+function onLossChange() {
+  const val = document.getElementById('lossSelect').value;
+  failedPMU = val === 'none' ? null : parseInt(val);
+  const desc = document.getElementById('lossDesc');
+  if (failedPMU) {
+    desc.textContent = 'Bus ' + failedPMU + ' のPMUを停止中。観測性が維持されるか確認してください。';
+  } else {
+    desc.textContent = '';
+  }
+  updateStats();
+  draw();
+  if (failedPMU) log('PMU故障シミュレーション: Bus ' + failedPMU);
+}
+
+function runOptimal() {
+  const mode = document.getElementById('modeSelect').value;
+  const opt = OPTIMAL[mode];
+  for (let i = 1; i <= N; i++) pmuState[i] = false;
+  for (const b of opt) pmuState[b] = true;
+  failedPMU = null;
+  updateLossSelect();
+  updateStats();
+  draw();
+  log('最適配置 (' + mode + '): buses [' + opt.join(', ') + '] = ' + opt.length + ' PMUs');
+}
+
+function clearAll() {
+  for (let i = 1; i <= N; i++) pmuState[i] = false;
+  failedPMU = null;
+  updateLossSelect();
+  updateStats();
+  draw();
+  log('全PMU撤去');
+}
+
+function updateStats() {
+  const { observed, pmuBuses, complete, minRedundancy } = checkObservability();
+  document.getElementById('statPMU').textContent = pmuBuses.length;
+  document.getElementById('statObs').textContent = observed.size;
+  document.getElementById('statMinRedundancy').textContent = minRedundancy === Infinity ? 0 : minRedundancy;
+  const rate = Math.round(observed.size / N * 100);
+  document.getElementById('statPMU').parentElement.querySelector('.label').textContent =
+    failedPMU ? 'Active PMU' : 'PMU数';
+  const rateEl = document.getElementById('statMinRedundancy');
+  rateEl.style.color = complete ? 'var(--obs-green)' : 'var(--accent)';
+  document.getElementById('pmuList').textContent = pmuBuses.length > 0 ? pmuBuses.join(', ') : 'なし';
+}
+
+function log(msg) {
+  const el = document.getElementById('logArea');
+  const time = new Date().toLocaleTimeString();
+  el.innerHTML += '\n[' + time + '] ' + msg;
+  el.scrollTop = el.scrollHeight;
+}
+</script>
+</body>
+</html>

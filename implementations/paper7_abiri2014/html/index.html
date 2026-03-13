@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper 7: Contingency-Aware PMU Placement with ZIB - Abiri 2014</title>
+<style>
+  :root {
+    --pmu-red: #e74c3c;
+    --obs-green: #27ae60;
+    --unobs-gray: #95a5a6;
+    --zib-purple: #9b59b6;
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card: #0f3460;
+    --text: #e8e8e8;
+    --accent: #e94560;
+    --border: #2a3a5c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .back-link {
+    display: inline-block; padding: 8px 16px; color: var(--accent);
+    text-decoration: none; font-size: 0.85rem; background: var(--surface);
+  }
+  .back-link:hover { text-decoration: underline; }
+  header {
+    background: linear-gradient(135deg, var(--surface), var(--card));
+    padding: 24px 32px; border-bottom: 2px solid var(--accent);
+  }
+  header h1 { font-size: 1.4rem; color: #fff; }
+  header p { font-size: 0.85rem; color: #aab; margin-top: 4px; }
+  header a { color: var(--accent); font-size: 0.8rem; }
+
+  .tab-bar {
+    display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 14px 28px; cursor: pointer; background: none; border: none;
+    color: #889; font-size: 0.95rem; font-weight: 600;
+    transition: all 0.2s; border-bottom: 3px solid transparent;
+  }
+  .tab-btn:hover { color: #ccc; }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .explanation {
+    max-width: 900px; margin: 0 auto; padding: 32px; line-height: 1.8;
+  }
+  .explanation h2 { color: var(--accent); margin: 24px 0 12px; font-size: 1.2rem; }
+  .explanation h3 { color: #ccd; margin: 16px 0 8px; }
+  .explanation p, .explanation li { color: #bbc; margin-bottom: 8px; }
+  .explanation ul, .explanation ol { padding-left: 24px; }
+  .math-block {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px 20px; margin: 12px 0; font-family: 'Courier New', monospace;
+    font-size: 0.9rem; overflow-x: auto; color: #dde;
+  }
+  .highlight-box {
+    background: rgba(233, 69, 96, 0.1); border-left: 4px solid var(--accent);
+    padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0;
+  }
+  .zib-box {
+    background: rgba(155, 89, 182, 0.15); border-left: 4px solid var(--zib-purple);
+    padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0;
+  }
+  table.data-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  table.data-table th, table.data-table td {
+    padding: 8px 12px; border: 1px solid var(--border); text-align: center;
+  }
+  table.data-table th { background: var(--card); color: var(--accent); }
+
+  .demo-container { display: flex; height: calc(100vh - 120px); }
+  .demo-sidebar {
+    width: 360px; background: var(--surface); border-right: 1px solid var(--border);
+    padding: 20px; overflow-y: auto; flex-shrink: 0;
+  }
+  .demo-main { flex: 1; position: relative; }
+  canvas#network { width: 100%; height: 100%; display: block; }
+
+  .ctrl-group { margin-bottom: 16px; }
+  .ctrl-group label {
+    display: block; font-size: 0.8rem; color: #889; margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  select, button {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--card); color: var(--text);
+    font-size: 0.9rem; cursor: pointer; transition: all 0.2s;
+  }
+  select:hover, button:hover { border-color: var(--accent); }
+  button.primary {
+    background: var(--accent); border-color: var(--accent);
+    color: white; font-weight: 600;
+  }
+  button.primary:hover { background: #d63851; }
+  button.secondary { background: transparent; border-color: var(--border); }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .stat-card { background: var(--card); border-radius: 6px; padding: 10px; text-align: center; }
+  .stat-card .value { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: 0.7rem; color: #889; text-transform: uppercase; }
+
+  .legend { margin-top: 16px; font-size: 0.8rem; }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .legend-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #333; flex-shrink: 0; }
+  .pmu-list {
+    margin-top: 8px; font-size: 0.85rem; color: #aab;
+    background: var(--card); padding: 8px 12px; border-radius: 6px; min-height: 32px;
+  }
+  .log-area {
+    margin-top: 12px; background: #0d1117; border-radius: 6px; padding: 10px;
+    font-family: 'Courier New', monospace; font-size: 0.75rem; color: #7ee;
+    max-height: 200px; overflow-y: auto;
+  }
+  .tooltip {
+    position: absolute; background: rgba(15, 52, 96, 0.95); border: 1px solid var(--accent);
+    border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; pointer-events: none;
+    display: none; z-index: 100;
+  }
+  .mode-desc {
+    background: var(--card); border-radius: 6px; padding: 10px 12px;
+    font-size: 0.8rem; color: #aab; margin-top: 8px; line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../../../">&larr; 論文一覧</a>
+
+<header>
+  <h1>Paper 7: Contingency-Aware PMU Placement with ZIB Rules</h1>
+  <p>E. Abiri, F. Rashidi, T. Niknam (2014) &mdash; IEEE Trans. Power Systems, Vol. 29, No. 6</p>
+  <a href="https://doi.org/10.1109/TPWRS.2014.2319091" target="_blank">DOI: 10.1109/TPWRS.2014.2319091</a>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('explain')">解説</button>
+  <button class="tab-btn" onclick="showTab('demo')">デモ</button>
+</div>
+
+<!-- ===== 解説タブ ===== -->
+<div id="tab-explain" class="tab-content active">
+<div class="explanation">
+
+<h2>1. 論文の背景と目的</h2>
+<p>
+  Abiri et al. (2014) は、PMU配置問題において<strong>ZIB（Zero Injection Bus）ルール</strong>を
+  体系的に適用し、さらに<strong>コンティンジェンシー（PMU損失・送電線開放）</strong>を
+  同時に考慮する包括的な定式化を提案しました。
+</p>
+
+<h2>2. ZIB（Zero Injection Bus）とは</h2>
+<div class="zib-box">
+  <strong>ZIB：</strong> 発電機も負荷も接続されていないバス（中継バス）。
+  KCL（キルヒホッフの電流法則）により、ZIBに流入する電流の総和はゼロです。
+  これにより、ZIBの全接続ブランチの電流のうち n-1 本が既知なら、
+  残り1本の電流も決定でき、対向バスの電圧が計算可能になります。
+</div>
+
+<h2>3. 5つのZIBルール</h2>
+<div class="highlight-box">
+  <strong>Rule 1:</strong> ZIBに接続する全てのブランチの電流が既知なら、ZIB自身の電圧が計算可能<br><br>
+  <strong>Rule 2:</strong> ZIBの隣接バスのうち1つを除いて全て観測済みなら、残りの1つも観測可能
+  （KCLにより未知電流が1本だけ残り、それを計算して対向バス電圧を求める）<br><br>
+  <strong>Rule 3:</strong> 接続する全ブランチの電流が既知のバスが観測済みなら、
+  そのバスにPMUがなくても隣接バスの電圧が計算可能<br><br>
+  <strong>Rule 4:</strong> ZIBの隣接バスに2つ以上の未観測バスがある場合、
+  ZIBルールだけでは追加の観測は得られない<br><br>
+  <strong>Rule 5:</strong> ZIBルールは反復適用可能。1回の適用で新たなバスが観測されると、
+  別のZIBルールの条件が満たされる可能性がある（収束まで繰り返す）
+</div>
+
+<h2>4. コンティンジェンシー対応</h2>
+
+<h3>Single PMU Loss</h3>
+<div class="math-block">
+各バスが少なくとも2台のPMUで観測される必要がある：<br>
+f &middot; x &ge; 2  （ZIBルール適用後）
+</div>
+
+<h3>Single Line Outage</h3>
+<div class="math-block">
+任意の1本の送電線が開放されても全バスが観測可能：<br>
+各ブランチ(i,j)の除去後の接続行列 f<sub>(i,j)</sub> について：<br>
+f<sub>(i,j)</sub> &middot; x &ge; 1  &forall; (i,j) &isin; E
+</div>
+
+<h2>5. ベンチマーク結果</h2>
+<table class="data-table">
+  <tr><th>テスト系統</th><th>Normal+ZIB</th><th>PMU Loss</th><th>Line Outage</th></tr>
+  <tr><td>IEEE 14-bus</td><td>3</td><td>7</td><td>6</td></tr>
+  <tr><td>IEEE 30-bus</td><td>7</td><td>15</td><td>13</td></tr>
+  <tr><td>IEEE 57-bus</td><td>11</td><td>24</td><td>21</td></tr>
+  <tr><td>IEEE 118-bus</td><td>28</td><td>55</td><td>49</td></tr>
+</table>
+
+<div class="highlight-box">
+  <strong>重要な知見：</strong> ZIBルールの適用により、通常観測に必要なPMU数が大幅に削減されます
+  （IEEE 14-bus: 4 &rarr; 3）。コンティンジェンシー対応では、PMU損失の方が送電線開放よりも
+  多くのPMUを必要とします。
+</div>
+
+</div>
+</div>
+
+<!-- ===== デモタブ ===== -->
+<div id="tab-demo" class="tab-content">
+<div class="demo-container">
+  <div class="demo-sidebar">
+    <div class="ctrl-group">
+      <label>観測モード</label>
+      <select id="modeSelect" onchange="onModeChange()">
+        <option value="normal_zib">Normal + ZIB Rules</option>
+        <option value="pmu_loss">Single PMU Loss</option>
+        <option value="line_outage">Single Line Outage</option>
+      </select>
+    </div>
+
+    <div class="mode-desc" id="modeDesc">
+      通常モード + ZIBルール適用。ZIB（バス7、紫）でのKCL伝搬を考慮。
+    </div>
+
+    <div class="ctrl-group" id="outageGroup" style="display:none">
+      <label>開放する送電線</label>
+      <select id="outageSelect" onchange="onOutageChange()">
+        <option value="none">なし（全線健全）</option>
+      </select>
+    </div>
+
+    <div class="ctrl-group" id="pmuLossGroup" style="display:none">
+      <label>故障PMU</label>
+      <select id="pmuLossSelect" onchange="onPmuLossChange()">
+        <option value="none">なし</option>
+      </select>
+    </div>
+
+    <div class="ctrl-group" style="display:flex;gap:8px;margin-top:12px">
+      <button class="primary" onclick="runOptimal()" style="flex:1">最適配置</button>
+      <button class="secondary" onclick="clearAll()" style="flex:1">全撤去</button>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value" id="statPMU">0</div>
+        <div class="label">PMU数</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statObs">0</div>
+        <div class="label">観測バス</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statTotal">14</div>
+        <div class="label">全バス</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statRate">0%</div>
+        <div class="label">観測率</div>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <label>PMU設置バス</label>
+      <div class="pmu-list" id="pmuList">なし</div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pmu-red)"></div>PMU設置</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--obs-green)"></div>直接観測済み</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--zib-purple)"></div>ZIB（Zero Injection Bus）</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--unobs-gray)"></div>未観測</div>
+    </div>
+
+    <div class="ctrl-group" style="margin-top:12px">
+      <label>ZIBルール適用状況</label>
+      <div class="log-area" id="zibLog" style="max-height:100px"></div>
+    </div>
+
+    <div class="ctrl-group">
+      <label>実行ログ</label>
+      <div class="log-area" id="logArea">Ready. バスをクリックしてPMUを設置/撤去できます。</div>
+    </div>
+  </div>
+
+  <div class="demo-main">
+    <canvas id="network"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+</div>
+</div>
+
+<script>
+const N = 14;
+const ALL_BRANCHES = [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],
+                       [6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]];
+const BUS_POS = {
+  1:[80,350], 2:[200,400], 3:[350,400], 4:[350,280], 5:[200,280],
+  6:[80,180], 7:[250,200], 8:[250,120], 9:[400,180], 10:[480,180],
+  11:[150,100], 12:[80,60], 13:[200,60], 14:[400,80]
+};
+const ZIBS = new Set([7]);
+
+const OPTIMAL = {
+  normal_zib: [2, 6, 9],
+  pmu_loss: [1, 2, 3, 6, 9, 10, 13],
+  line_outage: [2, 4, 6, 8, 9, 13]
+};
+
+let pmuState = {};
+for (let i = 1; i <= N; i++) pmuState[i] = false;
+let outageEdge = null;  // [a,b] or null
+let failedPMU = null;
+let canvas, ctx;
+let hoveredBus = null;
+let busPositions = {};
+
+function buildAdj(excludeEdge) {
+  const adj = {};
+  for (let i = 1; i <= N; i++) adj[i] = [];
+  for (const [a, b] of ALL_BRANCHES) {
+    if (excludeEdge && excludeEdge[0] === a && excludeEdge[1] === b) continue;
+    adj[a].push(b);
+    adj[b].push(a);
+  }
+  return adj;
+}
+
+function brKey(a, b) { return Math.min(a,b) + '-' + Math.max(a,b); }
+
+function checkObservability() {
+  const mode = document.getElementById('modeSelect').value;
+  const adj = buildAdj(outageEdge);
+  const activeBranches = ALL_BRANCHES.filter(([a,b]) => {
+    if (outageEdge && outageEdge[0] === a && outageEdge[1] === b) return false;
+    return true;
+  });
+
+  const pmuBuses = [];
+  for (let i = 1; i <= N; i++) {
+    if (pmuState[i] && i !== failedPMU) pmuBuses.push(i);
+  }
+
+  // Phase 1: Direct PMU observation
+  const observed = new Set();
+  const knownI = new Set();
+
+  for (const p of pmuBuses) {
+    observed.add(p);
+    for (const nb of adj[p]) {
+      observed.add(nb);
+      knownI.add(brKey(p, nb));
+    }
+  }
+
+  // Phase 2: Iterative ZIB rules
+  const zibLog = [];
+  let changed = true;
+  let iter = 0;
+  while (changed) {
+    changed = false;
+    iter++;
+
+    // Rule 2 (standard): branch between two observed buses -> current known
+    for (const [a, b] of activeBranches) {
+      if (observed.has(a) && observed.has(b) && !knownI.has(brKey(a, b))) {
+        knownI.add(brKey(a, b));
+        changed = true;
+      }
+    }
+
+    // ZIB Rule: at ZIB, if all but one neighbor observed -> remaining observed
+    for (const zb of ZIBS) {
+      const neighbors = adj[zb];
+      if (!neighbors || neighbors.length === 0) continue;
+      let unknownCount = 0, unknownNb = -1;
+      for (const nb of neighbors) {
+        if (!knownI.has(brKey(zb, nb))) { unknownCount++; unknownNb = nb; }
+      }
+      if (unknownCount === 1 && unknownNb >= 0) {
+        knownI.add(brKey(zb, unknownNb));
+        if (!observed.has(unknownNb)) {
+          observed.add(unknownNb);
+          changed = true;
+          zibLog.push('Iter ' + iter + ': ZIB ' + zb + ' -> Bus ' + unknownNb + ' observed (KCL)');
+        }
+      }
+    }
+  }
+
+  // Update ZIB log display
+  const zibLogEl = document.getElementById('zibLog');
+  if (zibLogEl) {
+    zibLogEl.textContent = zibLog.length > 0 ? zibLog.join('\n') : 'ZIBルール適用なし';
+  }
+
+  return { observed, pmuBuses, complete: observed.size === N };
+}
+
+window.addEventListener('load', () => {
+  canvas = document.getElementById('network');
+  ctx = canvas.getContext('2d');
+  canvas.addEventListener('click', onCanvasClick);
+  canvas.addEventListener('mousemove', onCanvasMove);
+  window.addEventListener('resize', resizeCanvas);
+  populateOutageSelect();
+  resizeCanvas();
+  updateStats();
+});
+
+function populateOutageSelect() {
+  const sel = document.getElementById('outageSelect');
+  sel.innerHTML = '<option value="none">なし（全線健全）</option>';
+  for (const [a, b] of ALL_BRANCHES) {
+    sel.innerHTML += '<option value="' + a + '-' + b + '">Line (' + a + ', ' + b + ')</option>';
+  }
+}
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  computePositions();
+  draw();
+}
+
+function computePositions() {
+  const w = canvas.width / devicePixelRatio;
+  const h = canvas.height / devicePixelRatio;
+  const xs = Object.values(BUS_POS).map(p => p[0]);
+  const ys = Object.values(BUS_POS).map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const pad = 60;
+  busPositions = {};
+  for (const [bus, [px, py]] of Object.entries(BUS_POS)) {
+    busPositions[bus] = [
+      pad + (px - minX) / (maxX - minX || 1) * (w - 2*pad),
+      pad + (py - minY) / (maxY - minY || 1) * (h - 2*pad)
+    ];
+  }
+}
+
+function showTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['explain','demo'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach((t, i) => {
+    t.classList.toggle('active', ['tab-explain','tab-demo'][i] === 'tab-' + name);
+  });
+  if (name === 'demo') setTimeout(resizeCanvas, 50);
+}
+
+function draw() {
+  const w = canvas.width / devicePixelRatio;
+  const h = canvas.height / devicePixelRatio;
+  ctx.clearRect(0, 0, w, h);
+
+  const { observed, pmuBuses } = checkObservability();
+
+  // Draw edges
+  for (const [a, b] of ALL_BRANCHES) {
+    const pa = busPositions[a], pb = busPositions[b];
+    if (!pa || !pb) continue;
+    const isOutage = outageEdge && outageEdge[0] === a && outageEdge[1] === b;
+
+    if (isOutage) {
+      ctx.strokeStyle = '#e74c3c';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([8, 6]);
+    } else {
+      ctx.strokeStyle = '#3a4a6c';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+    }
+    ctx.beginPath();
+    ctx.moveTo(pa[0], pa[1]);
+    ctx.lineTo(pb[0], pb[1]);
+    ctx.stroke();
+
+    if (isOutage) {
+      const mx = (pa[0] + pb[0]) / 2;
+      const my = (pa[1] + pb[1]) / 2;
+      ctx.setLineDash([]);
+      ctx.strokeStyle = '#e74c3c';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(mx - 6, my - 6); ctx.lineTo(mx + 6, my + 6);
+      ctx.moveTo(mx + 6, my - 6); ctx.lineTo(mx - 6, my + 6);
+      ctx.stroke();
+    }
+  }
+  ctx.setLineDash([]);
+
+  // Draw nodes
+  const R = 22;
+  for (let bus = 1; bus <= N; bus++) {
+    const p = busPositions[bus];
+    if (!p) continue;
+    const isPMU = pmuState[bus] && bus !== failedPMU;
+    const isFailed = pmuState[bus] && bus === failedPMU;
+    const isObs = observed.has(bus);
+    const isZIB = ZIBS.has(bus);
+
+    if (hoveredBus === bus) {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], R + 6, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(233,69,96,0.3)';
+      ctx.fill();
+    }
+
+    // ZIB outer ring
+    if (isZIB) {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], R + 4, 0, Math.PI*2);
+      ctx.strokeStyle = '#9b59b6';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], R, 0, Math.PI*2);
+    if (isFailed) {
+      ctx.fillStyle = '#555';
+    } else if (isPMU) {
+      ctx.fillStyle = '#e74c3c';
+    } else if (isObs) {
+      ctx.fillStyle = '#27ae60';
+    } else {
+      ctx.fillStyle = '#555e6e';
+    }
+    ctx.fill();
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Failed X
+    if (isFailed) {
+      ctx.strokeStyle = '#e74c3c';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(p[0]-8, p[1]-8); ctx.lineTo(p[0]+8, p[1]+8);
+      ctx.moveTo(p[0]+8, p[1]-8); ctx.lineTo(p[0]-8, p[1]+8);
+      ctx.stroke();
+    }
+
+    // Bus label
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(bus, p[0], p[1] - (isZIB ? 2 : 0));
+
+    // ZIB label
+    if (isZIB) {
+      ctx.font = '8px sans-serif';
+      ctx.fillStyle = '#c9a0dc';
+      ctx.fillText('ZIB', p[0], p[1] + 11);
+    }
+  }
+
+  // Mode label
+  const mode = document.getElementById('modeSelect').value;
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillStyle = 'rgba(233,69,96,0.7)';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  const labels = { normal_zib: 'Normal + ZIB', pmu_loss: 'Single PMU Loss', line_outage: 'Single Line Outage' };
+  ctx.fillText(labels[mode], 10, 10);
+  if (failedPMU) {
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillText('PMU ' + failedPMU + ' FAILED', 10, 30);
+  }
+  if (outageEdge) {
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillText('Line (' + outageEdge[0] + ',' + outageEdge[1] + ') OUTAGE', 10, failedPMU ? 50 : 30);
+  }
+}
+
+function getBusAt(x, y) {
+  for (let bus = 1; bus <= N; bus++) {
+    const p = busPositions[bus];
+    if (!p) continue;
+    const dx = x - p[0], dy = y - p[1];
+    if (dx*dx + dy*dy < 28*28) return bus;
+  }
+  return null;
+}
+
+function onCanvasClick(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const bus = getBusAt(x, y);
+  if (bus) {
+    pmuState[bus] = !pmuState[bus];
+    failedPMU = null;
+    updatePmuLossSelect();
+    updateStats();
+    draw();
+    log('Bus ' + bus + (ZIBS.has(bus) ? ' (ZIB)' : '') + ': PMU ' + (pmuState[bus] ? '設置' : '撤去'));
+  }
+}
+
+function onCanvasMove(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const bus = getBusAt(x, y);
+  if (bus !== hoveredBus) {
+    hoveredBus = bus;
+    draw();
+    const tip = document.getElementById('tooltip');
+    if (bus) {
+      const adj = buildAdj(outageEdge);
+      tip.innerHTML = '<strong>Bus ' + bus + '</strong>' +
+        (ZIBS.has(bus) ? ' <span style="color:#9b59b6">(ZIB)</span>' : '') +
+        '<br>PMU: ' + (pmuState[bus]?'Yes':'No') +
+        (bus === failedPMU ? ' (FAILED)' : '') +
+        '<br>隣接: ' + adj[bus].join(', ');
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX - canvas.parentElement.getBoundingClientRect().left + 15) + 'px';
+      tip.style.top = (e.clientY - canvas.parentElement.getBoundingClientRect().top + 15) + 'px';
+    } else {
+      tip.style.display = 'none';
+    }
+  }
+}
+
+function onModeChange() {
+  const mode = document.getElementById('modeSelect').value;
+  const desc = document.getElementById('modeDesc');
+  const outageGroup = document.getElementById('outageGroup');
+  const pmuLossGroup = document.getElementById('pmuLossGroup');
+
+  outageEdge = null;
+  failedPMU = null;
+
+  if (mode === 'normal_zib') {
+    desc.textContent = '通常モード + ZIBルール適用。ZIB（バス7、紫）でのKCL伝搬を考慮して観測性を判定。';
+    outageGroup.style.display = 'none';
+    pmuLossGroup.style.display = 'none';
+  } else if (mode === 'pmu_loss') {
+    desc.textContent = 'Single PMU Loss: 任意の1台のPMUが故障しても全バス観測可能。故障PMUを選択してシミュレーション可能。';
+    outageGroup.style.display = 'none';
+    pmuLossGroup.style.display = 'block';
+    updatePmuLossSelect();
+  } else {
+    desc.textContent = 'Single Line Outage: 任意の1本の送電線が開放されても全バス観測可能。開放線を選択してシミュレーション可能。';
+    outageGroup.style.display = 'block';
+    pmuLossGroup.style.display = 'none';
+  }
+  updateStats();
+  draw();
+  log('モード変更: ' + mode);
+}
+
+function updatePmuLossSelect() {
+  const sel = document.getElementById('pmuLossSelect');
+  sel.innerHTML = '<option value="none">なし</option>';
+  for (let i = 1; i <= N; i++) {
+    if (pmuState[i]) {
+      sel.innerHTML += '<option value="' + i + '">Bus ' + i + ' のPMU故障</option>';
+    }
+  }
+}
+
+function onOutageChange() {
+  const val = document.getElementById('outageSelect').value;
+  if (val === 'none') {
+    outageEdge = null;
+  } else {
+    const parts = val.split('-').map(Number);
+    outageEdge = parts;
+  }
+  updateStats();
+  draw();
+  if (outageEdge) log('Line outage: (' + outageEdge[0] + ', ' + outageEdge[1] + ')');
+}
+
+function onPmuLossChange() {
+  const val = document.getElementById('pmuLossSelect').value;
+  failedPMU = val === 'none' ? null : parseInt(val);
+  updateStats();
+  draw();
+  if (failedPMU) log('PMU loss: Bus ' + failedPMU);
+}
+
+function runOptimal() {
+  const mode = document.getElementById('modeSelect').value;
+  const opt = OPTIMAL[mode];
+  for (let i = 1; i <= N; i++) pmuState[i] = false;
+  for (const b of opt) pmuState[b] = true;
+  failedPMU = null;
+  outageEdge = null;
+  document.getElementById('outageSelect').value = 'none';
+  updatePmuLossSelect();
+  updateStats();
+  draw();
+  log('最適配置 (' + mode + '): buses [' + opt.join(', ') + '] = ' + opt.length + ' PMUs');
+}
+
+function clearAll() {
+  for (let i = 1; i <= N; i++) pmuState[i] = false;
+  failedPMU = null;
+  outageEdge = null;
+  updatePmuLossSelect();
+  updateStats();
+  draw();
+  log('全PMU撤去');
+}
+
+function updateStats() {
+  const { observed, pmuBuses, complete } = checkObservability();
+  document.getElementById('statPMU').textContent = pmuBuses.length;
+  document.getElementById('statObs').textContent = observed.size;
+  document.getElementById('statRate').textContent = Math.round(observed.size / N * 100) + '%';
+  document.getElementById('statRate').style.color = complete ? 'var(--obs-green)' : 'var(--accent)';
+  document.getElementById('pmuList').textContent = pmuBuses.length > 0 ? pmuBuses.join(', ') : 'なし';
+}
+
+function log(msg) {
+  const el = document.getElementById('logArea');
+  const time = new Date().toLocaleTimeString();
+  el.innerHTML += '\n[' + time + '] ' + msg;
+  el.scrollTop = el.scrollHeight;
+}
+</script>
+</body>
+</html>

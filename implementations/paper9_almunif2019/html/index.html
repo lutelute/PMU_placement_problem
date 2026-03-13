@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper 9: MILP vs NLP Comparison - Almunif & Fan 2019</title>
+<style>
+  :root {
+    --pmu-red: #e74c3c;
+    --obs-green: #27ae60;
+    --unobs-gray: #95a5a6;
+    --milp-blue: #3498db;
+    --nlp-purple: #9b59b6;
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card: #0f3460;
+    --text: #e8e8e8;
+    --accent: #e94560;
+    --border: #2a3a5c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  a.back-link {
+    display: inline-block;
+    padding: 8px 16px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+    background: var(--surface);
+  }
+  a.back-link:hover { text-decoration: underline; }
+  header {
+    background: linear-gradient(135deg, var(--surface), var(--card));
+    padding: 24px 32px;
+    border-bottom: 2px solid var(--accent);
+  }
+  header h1 { font-size: 1.4rem; color: #fff; }
+  header p { font-size: 0.85rem; color: #aab; margin-top: 4px; }
+  header a { color: var(--accent); font-size: 0.8rem; }
+
+  .tab-bar {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 14px 28px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #889;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+  }
+  .tab-btn:hover { color: #ccc; }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .explanation {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px;
+    line-height: 1.8;
+  }
+  .explanation h2 { color: var(--accent); margin: 24px 0 12px; font-size: 1.2rem; }
+  .explanation h3 { color: #ccd; margin: 16px 0 8px; }
+  .explanation p, .explanation li { color: #bbc; margin-bottom: 8px; }
+  .explanation ul { padding-left: 24px; }
+  .math-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    overflow-x: auto;
+    color: #dde;
+  }
+  .highlight-box {
+    background: rgba(233, 69, 96, 0.1);
+    border-left: 4px solid var(--accent);
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+  }
+  table.data-table th, table.data-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  table.data-table th { background: var(--card); color: var(--accent); }
+
+  .demo-container {
+    display: flex;
+    height: calc(100vh - 120px);
+  }
+  .demo-sidebar {
+    width: 360px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .demo-main {
+    flex: 1;
+    position: relative;
+  }
+  canvas#network {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .ctrl-group { margin-bottom: 16px; }
+  .ctrl-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: #889;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  select, button {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  select:hover, button:hover { border-color: var(--accent); }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 600;
+  }
+  button.primary:hover { background: #d63851; }
+  button.secondary {
+    background: transparent;
+    border-color: var(--border);
+  }
+  .scenario-btn {
+    width: 100%;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+  }
+  .scenario-btn:hover { border-color: var(--accent); }
+  .scenario-btn.active {
+    border-color: var(--accent);
+    background: rgba(233, 69, 96, 0.15);
+  }
+  .scenario-btn .sc-title { font-weight: 600; }
+  .scenario-btn .sc-detail { font-size: 0.75rem; color: #889; margin-top: 2px; }
+
+  .solution-btn {
+    display: inline-block;
+    width: auto;
+    padding: 6px 12px;
+    margin: 3px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-family: monospace;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .solution-btn:hover { border-color: var(--accent); }
+  .solution-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-card .value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-card .label {
+    font-size: 0.7rem;
+    color: #889;
+    text-transform: uppercase;
+  }
+  .legend {
+    margin-top: 16px;
+    font-size: 0.8rem;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #333;
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 12px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .pmu-list {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #aab;
+    background: var(--card);
+    padding: 8px 12px;
+    border-radius: 6px;
+    min-height: 32px;
+  }
+  .method-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+  .method-badge.milp { background: #3498db33; color: #3498db; }
+  .method-badge.nlp { background: #9b59b633; color: #9b59b6; }
+  .tooltip {
+    position: absolute;
+    background: rgba(15, 52, 96, 0.95);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+  }
+  .zib-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    background: #2ecc7133;
+    color: #2ecc71;
+    margin-left: 4px;
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../../../">&larr; 論文一覧</a>
+
+<header>
+  <h1>Paper 9: MILP vs NLP によるPMU最適配置の比較</h1>
+  <p>A. Almunif, L. Fan (2019) &mdash; North American Power Symposium (NAPS)</p>
+  <a href="https://doi.org/10.1109/NAPS46351.2019.9000371" target="_blank">DOI: 10.1109/NAPS46351.2019.9000371</a>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('explain')">解説</button>
+  <button class="tab-btn" onclick="showTab('demo')">デモ</button>
+</div>
+
+<!-- ===== 解説タブ ===== -->
+<div id="tab-explain" class="tab-content active">
+<div class="explanation">
+
+<h2>1. 論文の背景と目的</h2>
+<p>
+  PMU最適配置問題は通常、混合整数線形計画法（MILP）で定式化されますが、
+  本論文は<strong>非線形計画法（NLP）</strong>による代替定式化を提案し、
+  MILPとの結果を比較しています。NLPアプローチは整数変数を連続緩和し、
+  異なる初期点から複数の最適解を発見できるという利点があります。
+</p>
+
+<h2>2. MILP定式化</h2>
+<div class="math-block">
+Minimize: &sum;<sub>i=1</sub><sup>n</sup> x<sub>i</sub><br>
+Subject to: A &middot; x &ge; 1<br>
+x<sub>i</sub> &isin; {0, 1}  &forall;i<br><br>
+A: 接続行列 (a<sub>ij</sub> = 1 if bus i,j connected or i=j)
+</div>
+
+<h2>3. NLP定式化</h2>
+<div class="math-block">
+Minimize: &sum;<sub>i=1</sub><sup>n</sup> x<sub>i</sub><br>
+Subject to: A &middot; x &ge; 1<br>
+0 &le; x<sub>i</sub> &le; 1  &forall;i<br>
+x<sub>i</sub>(1 - x<sub>i</sub>) &le; 0  &forall;i  (整数性を強制する非線形制約)
+</div>
+<p>
+  NLPでは整数制約を非線形制約 x<sub>i</sub>(1-x<sub>i</sub>) &le; 0 で置き換えます。
+  異なる初期点から解くことで、複数の最適解を発見できます。
+</p>
+
+<h2>4. 拡張シナリオ</h2>
+<h3>ゼロインジェクションバス（ZIB）の考慮</h3>
+<div class="highlight-box">
+  ZIBとは発電も負荷もないバスで、KCL（キルヒホフの電流法則）により
+  追加の観測性情報が得られます。IEEE 14-busではバス7がZIBです。
+  ZIBを考慮すると、必要PMU数が4から3に削減されます。
+</div>
+
+<h3>PMU故障への冗長性</h3>
+<p>
+  各バスが少なくとも2台のPMUで観測可能（N-1冗長性）を要求すると、
+  必要PMU数は大幅に増加します。
+</p>
+
+<h3>チャネル数制限</h3>
+<p>
+  PMUが同時に測定できるチャネル数に上限 c を設けると、
+  高接続度バスへのPMU配置の効果が制限されます。
+</p>
+
+<h2>5. IEEE 14-busでの結果</h2>
+<table class="data-table">
+  <tr>
+    <th>シナリオ</th>
+    <th>PMU数</th>
+    <th>MILP解</th>
+    <th>NLP解（複数）</th>
+  </tr>
+  <tr>
+    <td>基本</td>
+    <td>4</td>
+    <td>{2, 6, 7, 9}</td>
+    <td>{2,8,10,13}, {2,7,10,13}, {2,7,11,13}, {2,6,8,9}, {2,6,7,9}</td>
+  </tr>
+  <tr>
+    <td>ZIB考慮</td>
+    <td>3</td>
+    <td>{2, 6, 9}</td>
+    <td>{2, 6, 9} 他</td>
+  </tr>
+  <tr>
+    <td>PMU故障 (N-1)</td>
+    <td>9</td>
+    <td>{1,2,3,5,6,8,9,10,13}</td>
+    <td>複数解あり</td>
+  </tr>
+  <tr>
+    <td>チャネル制限 c=3</td>
+    <td>4</td>
+    <td>{2, 6, 7, 9}</td>
+    <td>{2, 6, 7, 9} 他</td>
+  </tr>
+</table>
+
+<div class="highlight-box">
+  <strong>核心的な知見:</strong> NLPは異なる初期点から複数の同等最適解を発見できる。
+  基本シナリオでは5つの異なる最適配置が存在し、いずれも4台のPMUで完全観測性を達成する。
+  MILPは通常1つの解のみを返すが、NLPの多様な解は実運用での柔軟性を提供する。
+</div>
+
+</div>
+</div>
+
+<!-- ===== デモタブ ===== -->
+<div id="tab-demo" class="tab-content">
+<div class="demo-container">
+  <div class="demo-sidebar">
+    <div class="section-title">シナリオ選択</div>
+
+    <div class="scenario-btn active" id="sc-basic" onclick="selectScenario('basic')">
+      <div class="sc-title">基本 <span class="method-badge milp">MILP</span><span class="method-badge nlp">NLP</span></div>
+      <div class="sc-detail">PMU 4台 | ZIBなし | 故障なし | チャネル無制限</div>
+    </div>
+    <div class="scenario-btn" id="sc-zib" onclick="selectScenario('zib')">
+      <div class="sc-title">ZIB考慮 <span class="zib-badge">Bus 7 = ZIB</span></div>
+      <div class="sc-detail">PMU 3台 | ゼロインジェクションバス活用</div>
+    </div>
+    <div class="scenario-btn" id="sc-failure" onclick="selectScenario('failure')">
+      <div class="sc-title">PMU故障 (N-1冗長性)</div>
+      <div class="sc-detail">PMU 9台 | 各バスを2台以上で観測</div>
+    </div>
+    <div class="scenario-btn" id="sc-channel" onclick="selectScenario('channel')">
+      <div class="sc-title">チャネル制限 c=3</div>
+      <div class="sc-detail">PMU 4台 | 各PMUの測定チャネル上限=3</div>
+    </div>
+
+    <div class="section-title" id="solutions-title">NLP解の切り替え (基本)</div>
+    <div id="solutions-container"></div>
+
+    <div class="pmu-list" id="pmu-list">PMU: {2, 6, 7, 9}</div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value" id="stat-pmu">4</div>
+        <div class="label">PMU数</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="stat-obs">14</div>
+        <div class="label">観測バス</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="stat-total">14</div>
+        <div class="label">全バス数</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="stat-method">&mdash;</div>
+        <div class="label">手法</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pmu-red)"></div>PMU設置バス</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--obs-green)"></div>観測可能バス</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--unobs-gray)"></div>未観測バス</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2ecc71; border-color:#2ecc71;"></div>ZIBバス</div>
+    </div>
+  </div>
+
+  <div class="demo-main">
+    <canvas id="network"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+</div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  document.querySelectorAll('.tab-btn')[id === 'explain' ? 0 : 1].classList.add('active');
+  if (id === 'demo') requestAnimationFrame(() => { resizeCanvas(); draw(); });
+}
+
+// IEEE 14-bus
+const N = 14;
+const branches = [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],[6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]];
+const busCoords = {1:[80,350],2:[200,400],3:[350,400],4:[350,280],5:[200,280],6:[80,180],7:[250,200],8:[250,120],9:[400,180],10:[480,180],11:[150,100],12:[80,60],13:[200,60],14:[400,80]};
+const ZIBs = [7];
+
+const adj = {};
+for (let i = 1; i <= N; i++) adj[i] = [];
+branches.forEach(([a,b]) => { adj[a].push(b); adj[b].push(a); });
+
+// Scenario data
+const scenarios = {
+  basic: {
+    label: '基本',
+    pmuCount: 4,
+    milp: [2, 6, 7, 9],
+    nlpSolutions: [
+      { label: '{2,6,7,9}', buses: [2,6,7,9], method: 'MILP/NLP' },
+      { label: '{2,8,10,13}', buses: [2,8,10,13], method: 'NLP' },
+      { label: '{2,7,10,13}', buses: [2,7,10,13], method: 'NLP' },
+      { label: '{2,7,11,13}', buses: [2,7,11,13], method: 'NLP' },
+      { label: '{2,6,8,9}', buses: [2,6,8,9], method: 'NLP' }
+    ],
+    useZIB: false,
+    redundancy: false,
+    channelLimit: null
+  },
+  zib: {
+    label: 'ZIB考慮',
+    pmuCount: 3,
+    milp: [2, 6, 9],
+    nlpSolutions: [
+      { label: '{2,6,9}', buses: [2,6,9], method: 'MILP/NLP' },
+      { label: '{2,8,9}', buses: [2,8,9], method: 'NLP' },
+      { label: '{2,6,14}', buses: [2,6,14], method: 'NLP' }
+    ],
+    useZIB: true,
+    redundancy: false,
+    channelLimit: null
+  },
+  failure: {
+    label: 'PMU故障 (N-1)',
+    pmuCount: 9,
+    milp: [1,2,3,5,6,8,9,10,13],
+    nlpSolutions: [
+      { label: '{1,2,3,5,6,8,9,10,13}', buses: [1,2,3,5,6,8,9,10,13], method: 'MILP/NLP' },
+      { label: '{1,2,3,4,6,8,9,10,13}', buses: [1,2,3,4,6,8,9,10,13], method: 'NLP' }
+    ],
+    useZIB: false,
+    redundancy: true,
+    channelLimit: null
+  },
+  channel: {
+    label: 'チャネル制限 c=3',
+    pmuCount: 4,
+    milp: [2, 6, 7, 9],
+    nlpSolutions: [
+      { label: '{2,6,7,9}', buses: [2,6,7,9], method: 'MILP/NLP' },
+      { label: '{2,6,8,9}', buses: [2,6,8,9], method: 'NLP' }
+    ],
+    useZIB: false,
+    redundancy: false,
+    channelLimit: 3
+  }
+};
+
+let currentScenario = 'basic';
+let currentSolIdx = 0;
+let currentPMUs = new Set();
+
+function selectScenario(sc) {
+  currentScenario = sc;
+  currentSolIdx = 0;
+  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sc-' + sc).classList.add('active');
+  buildSolutionBtns();
+  applySolution();
+}
+
+function buildSolutionBtns() {
+  const sc = scenarios[currentScenario];
+  const container = document.getElementById('solutions-container');
+  container.innerHTML = '';
+  document.getElementById('solutions-title').textContent = `NLP解の切り替え (${sc.label})`;
+
+  sc.nlpSolutions.forEach((sol, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'solution-btn' + (idx === currentSolIdx ? ' active' : '');
+    btn.textContent = sol.label;
+    btn.onclick = () => { currentSolIdx = idx; buildSolutionBtns(); applySolution(); };
+    container.appendChild(btn);
+  });
+
+  // Method badge
+  const sol = sc.nlpSolutions[currentSolIdx];
+  if (sol) {
+    const badge = document.createElement('span');
+    badge.style.cssText = 'display:block; margin-top:8px; font-size:0.75rem; color:#889;';
+    badge.textContent = '手法: ' + sol.method;
+    container.appendChild(badge);
+  }
+}
+
+function applySolution() {
+  const sc = scenarios[currentScenario];
+  const sol = sc.nlpSolutions[currentSolIdx];
+  currentPMUs = new Set(sol.buses);
+  updateDisplay();
+}
+
+function computeObservability() {
+  const observed = new Set();
+  const sc = scenarios[currentScenario];
+
+  // PMU direct observation
+  currentPMUs.forEach(b => {
+    observed.add(b);
+    const neighbors = adj[b];
+    if (sc.channelLimit) {
+      // Only observe up to channelLimit neighbors
+      neighbors.slice(0, sc.channelLimit).forEach(n => observed.add(n));
+    } else {
+      neighbors.forEach(n => observed.add(n));
+    }
+  });
+
+  // ZIB propagation
+  if (sc.useZIB) {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      ZIBs.forEach(zib => {
+        const neighbors = adj[zib];
+        const unobs = neighbors.filter(n => !observed.has(n));
+        // If ZIB itself + all but one neighbor observed => last neighbor observed
+        if (observed.has(zib) && unobs.length === 1) {
+          observed.add(unobs[0]);
+          changed = true;
+        }
+        // If all neighbors observed => ZIB observed
+        if (!observed.has(zib) && unobs.length === 0) {
+          observed.add(zib);
+          changed = true;
+        }
+        // If all but one neighbor + ZIB observed
+        if (observed.has(zib)) {
+          const unobsN = neighbors.filter(n => !observed.has(n));
+          if (unobsN.length === 1) {
+            observed.add(unobsN[0]);
+            changed = true;
+          }
+        }
+      });
+    }
+  }
+
+  // Count redundancy
+  const obsCount = {};
+  for (let i = 1; i <= N; i++) obsCount[i] = 0;
+  currentPMUs.forEach(b => {
+    obsCount[b]++;
+    const neighbors = adj[b];
+    const limit = sc.channelLimit || neighbors.length;
+    for (let k = 0; k < Math.min(limit, neighbors.length); k++) {
+      obsCount[neighbors[k]]++;
+    }
+  });
+
+  return { observed, obsCount };
+}
+
+function updateDisplay() {
+  const { observed, obsCount } = computeObservability();
+  const sc = scenarios[currentScenario];
+  const sol = sc.nlpSolutions[currentSolIdx];
+
+  document.getElementById('stat-pmu').textContent = currentPMUs.size;
+  document.getElementById('stat-obs').textContent = observed.size;
+  document.getElementById('stat-method').textContent = sol.method.split('/')[0];
+  document.getElementById('pmu-list').textContent = 'PMU: {' + [...currentPMUs].sort((a,b)=>a-b).join(', ') + '}';
+  draw();
+}
+
+// Canvas
+const canvas = document.getElementById('network');
+const ctx = canvas.getContext('2d');
+let W, H, scale, offsetX, offsetY;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  W = rect.width;
+  H = rect.height;
+  const xs = Object.values(busCoords).map(c => c[0]);
+  const ys = Object.values(busCoords).map(c => c[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const rangeX = maxX - minX || 1, rangeY = maxY - minY || 1;
+  scale = Math.min((W - 120) / rangeX, (H - 120) / rangeY);
+  offsetX = (W - rangeX * scale) / 2 - minX * scale;
+  offsetY = (H - rangeY * scale) / 2 - minY * scale;
+}
+
+function busXY(bus) {
+  const [bx, by] = busCoords[bus];
+  return [bx * scale + offsetX, by * scale + offsetY];
+}
+
+function draw() {
+  const dpr = devicePixelRatio;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const { observed, obsCount } = computeObservability();
+  const sc = scenarios[currentScenario];
+
+  // Draw branches
+  branches.forEach(([a, b]) => {
+    const [x1, y1] = busXY(a);
+    const [x2, y2] = busXY(b);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = '#2a3a5c';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // Draw buses
+  for (let i = 1; i <= N; i++) {
+    const [x, y] = busXY(i);
+    const hasPMU = currentPMUs.has(i);
+    const isObs = observed.has(i);
+    const isZIB = ZIBs.includes(i);
+    const r = hasPMU ? 22 : 18;
+
+    // ZIB indicator
+    if (isZIB && sc.useZIB) {
+      ctx.beginPath();
+      ctx.arc(x, y, r + 8, 0, Math.PI * 2);
+      ctx.strokeStyle = '#2ecc71';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Redundancy ring for failure scenario
+    if (sc.redundancy && obsCount[i] >= 2) {
+      ctx.beginPath();
+      ctx.arc(x, y, r + 5, 0, Math.PI * 2);
+      ctx.strokeStyle = '#f39c12';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = hasPMU ? '#e74c3c' : isObs ? '#27ae60' : '#95a5a6';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = hasPMU ? 3 : 1.5;
+    ctx.stroke();
+
+    // Bus label
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i, x, y);
+
+    // ZIB label
+    if (isZIB) {
+      ctx.fillStyle = '#2ecc71';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('ZIB', x, y + r + 14);
+    }
+
+    // Redundancy count
+    if (sc.redundancy) {
+      ctx.fillStyle = obsCount[i] >= 2 ? '#f39c12' : '#e74c3c';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('x' + obsCount[i], x + r + 6, y - 4);
+    }
+  }
+
+  // Status
+  const allObs = observed.size === N;
+  ctx.fillStyle = allObs ? '#27ae60' : '#e94560';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(allObs ? '完全観測性達成!' : `未観測: ${N - observed.size}バス`, 20, 20);
+
+  const sol = sc.nlpSolutions[currentSolIdx];
+  ctx.fillStyle = '#889';
+  ctx.font = '12px sans-serif';
+  ctx.fillText(`${sc.label} | ${sol.method} | PMU: ${currentPMUs.size}台`, 20, 44);
+
+  if (sc.useZIB) {
+    ctx.fillStyle = '#2ecc71';
+    ctx.fillText('ZIB: Bus 7 (ゼロインジェクション)', 20, 64);
+  }
+  if (sc.channelLimit) {
+    ctx.fillStyle = '#f39c12';
+    ctx.fillText(`チャネル制限: c=${sc.channelLimit}`, 20, sc.useZIB ? 84 : 64);
+  }
+}
+
+// Click to toggle PMU manually
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  for (let i = 1; i <= N; i++) {
+    const [x, y] = busXY(i);
+    if (Math.hypot(mx - x, my - y) < 24) {
+      if (currentPMUs.has(i)) currentPMUs.delete(i);
+      else currentPMUs.add(i);
+      // Deselect solution buttons since manual edit
+      document.querySelectorAll('.solution-btn').forEach(b => b.classList.remove('active'));
+      updateDisplay();
+      return;
+    }
+  }
+});
+
+// Tooltip
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const tt = document.getElementById('tooltip');
+  const { observed, obsCount } = computeObservability();
+  for (let i = 1; i <= N; i++) {
+    const [x, y] = busXY(i);
+    if (Math.hypot(mx - x, my - y) < 24) {
+      const hasPMU = currentPMUs.has(i);
+      const isZIB = ZIBs.includes(i);
+      const status = hasPMU ? 'PMU設置' : observed.has(i) ? '観測可能' : '未観測';
+      tt.innerHTML = `<strong>Bus ${i}</strong>${isZIB ? ' (ZIB)' : ''}<br>` +
+        `状態: ${status}<br>` +
+        `隣接: [${adj[i].join(', ')}]<br>` +
+        `接続数: ${adj[i].length}<br>` +
+        `観測冗長度: ${obsCount[i]}`;
+      tt.style.display = 'block';
+      tt.style.left = (e.clientX - rect.left + 15) + 'px';
+      tt.style.top = (e.clientY - rect.top - 10) + 'px';
+      return;
+    }
+  }
+  tt.style.display = 'none';
+});
+
+// Init
+window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+buildSolutionBtns();
+resizeCanvas();
+applySolution();
+</script>
+</body>
+</html>

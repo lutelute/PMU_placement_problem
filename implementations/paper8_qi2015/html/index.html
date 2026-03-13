@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper 8: Observability Gramian Approach - Qi et al. 2015</title>
+<style>
+  :root {
+    --pmu-red: #e74c3c;
+    --obs-green: #27ae60;
+    --unobs-gray: #95a5a6;
+    --gen-gold: #f1c40f;
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card: #0f3460;
+    --text: #e8e8e8;
+    --accent: #e94560;
+    --border: #2a3a5c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  a.back-link {
+    display: inline-block;
+    padding: 8px 16px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+    background: var(--surface);
+  }
+  a.back-link:hover { text-decoration: underline; }
+  header {
+    background: linear-gradient(135deg, var(--surface), var(--card));
+    padding: 24px 32px;
+    border-bottom: 2px solid var(--accent);
+  }
+  header h1 { font-size: 1.4rem; color: #fff; }
+  header p { font-size: 0.85rem; color: #aab; margin-top: 4px; }
+  header a { color: var(--accent); font-size: 0.8rem; }
+
+  .tab-bar {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 14px 28px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #889;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+  }
+  .tab-btn:hover { color: #ccc; }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .explanation {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px;
+    line-height: 1.8;
+  }
+  .explanation h2 {
+    color: var(--accent);
+    margin: 24px 0 12px;
+    font-size: 1.2rem;
+  }
+  .explanation h3 { color: #ccd; margin: 16px 0 8px; }
+  .explanation p, .explanation li { color: #bbc; margin-bottom: 8px; }
+  .explanation ul { padding-left: 24px; }
+  .math-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    overflow-x: auto;
+    color: #dde;
+  }
+  .highlight-box {
+    background: rgba(233, 69, 96, 0.1);
+    border-left: 4px solid var(--accent);
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+  }
+  table.data-table th, table.data-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  table.data-table th {
+    background: var(--card);
+    color: var(--accent);
+  }
+  table.data-table tr.best-row {
+    background: rgba(233, 69, 96, 0.15);
+  }
+
+  .demo-container {
+    display: flex;
+    height: calc(100vh - 120px);
+  }
+  .demo-sidebar {
+    width: 360px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .demo-main {
+    flex: 1;
+    position: relative;
+  }
+  canvas#network {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .ctrl-group { margin-bottom: 16px; }
+  .ctrl-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: #889;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  select, button {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  select:hover, button:hover { border-color: var(--accent); }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 600;
+  }
+  button.primary:hover { background: #d63851; }
+  button.secondary {
+    background: transparent;
+    border-color: var(--border);
+  }
+  .gen-btn {
+    display: inline-block;
+    width: auto;
+    padding: 8px 16px;
+    margin: 4px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .gen-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-card .value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-card .label {
+    font-size: 0.7rem;
+    color: #889;
+    text-transform: uppercase;
+  }
+  .legend {
+    margin-top: 16px;
+    font-size: 0.8rem;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #333;
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 12px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .gramian-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+    font-size: 0.8rem;
+  }
+  .gramian-bar .bar-label { width: 70px; color: #aab; flex-shrink: 0; }
+  .gramian-bar .bar-track {
+    flex: 1;
+    height: 18px;
+    background: var(--card);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .gramian-bar .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+  .gramian-bar .bar-value {
+    width: 60px;
+    text-align: right;
+    font-family: monospace;
+    color: #dde;
+    flex-shrink: 0;
+  }
+  .ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 0.8rem;
+  }
+  .ranking-table th, .ranking-table td {
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .ranking-table th { background: var(--card); color: var(--accent); }
+  .ranking-table tr.selected { background: rgba(233, 69, 96, 0.2); }
+  .tooltip {
+    position: absolute;
+    background: rgba(15, 52, 96, 0.95);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../../../">&larr; 論文一覧</a>
+
+<header>
+  <h1>Paper 8: 観測性グラミアンによるPMU最適配置</h1>
+  <p>J. Qi, K. Sun, W. Kang (2015) &mdash; IEEE Trans. Power Systems</p>
+  <a href="https://doi.org/10.1109/TPWRS.2015.2396713" target="_blank">DOI: 10.1109/TPWRS.2015.2396713</a>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('explain')">解説</button>
+  <button class="tab-btn" onclick="showTab('demo')">デモ</button>
+</div>
+
+<!-- ===== 解説タブ ===== -->
+<div id="tab-explain" class="tab-content active">
+<div class="explanation">
+
+<h2>1. 論文の背景と目的</h2>
+<p>
+  従来のPMU配置問題は、トポロジカルな観測性（全バスの電圧フェーザーが一意に決定可能か）に基づいていました。
+  本論文は、<strong>観測性グラミアン（Observability Gramian）</strong>という制御理論の概念を
+  電力系統のPMU配置問題に応用し、観測性の「質」を定量的に評価する新しいアプローチを提案しています。
+</p>
+
+<h2>2. 観測性グラミアンとは</h2>
+<div class="highlight-box">
+  <strong>観測性グラミアン W<sub>o</sub></strong>は、システムの内部状態がどれだけ
+  出力測定から推定しやすいかを定量化する行列です。<br><br>
+  <strong>det(W<sub>o</sub>)</strong> が大きいほど、システムの状態推定精度が高く、
+  PMU配置が「良い」ことを意味します。
+</div>
+
+<h2>3. 数学的定式化</h2>
+<div class="math-block">
+線形化モデル: dx/dt = A&middot;x + B&middot;u<br>
+測定方程式:   y = C&middot;x<br><br>
+観測性グラミアン: W<sub>o</sub> = &int;<sub>0</sub><sup>&infin;</sup> e<sup>A<sup>T</sup>t</sup> C<sup>T</sup>C e<sup>At</sup> dt<br><br>
+最適化目標: max det(W<sub>o</sub>)  (PMU配置の関数として)
+</div>
+
+<p>ここで行列 C はPMUの配置に依存します。発電機バスにPMUを設置すると、
+そのバスの電圧・周波数・電力が測定可能になり、C行列の対応する行が活性化されます。</p>
+
+<h2>4. WSCC 9-busシステムでの結果</h2>
+<p>
+  WSCC 9-busシステム（3台の発電機、9つのバス）を用いた解析結果（Table II）：
+</p>
+
+<h3>単一PMU配置のランキング</h3>
+<table class="data-table">
+  <tr>
+    <th>順位</th>
+    <th>PMU配置</th>
+    <th>det(W<sub>o</sub>)</th>
+    <th>評価</th>
+  </tr>
+  <tr class="best-row">
+    <td>1</td>
+    <td>Gen 3 (Bus 3)</td>
+    <td>5.82 &times; 10<sup>4</sup></td>
+    <td>最良</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Gen 2 (Bus 2)</td>
+    <td>3.41 &times; 10<sup>4</sup></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>Gen 1 (Bus 1)</td>
+    <td>1.25 &times; 10<sup>4</sup></td>
+    <td>最低</td>
+  </tr>
+</table>
+
+<h3>2台PMU配置のランキング</h3>
+<table class="data-table">
+  <tr>
+    <th>順位</th>
+    <th>PMU配置</th>
+    <th>det(W<sub>o</sub>)</th>
+    <th>評価</th>
+  </tr>
+  <tr class="best-row">
+    <td>1</td>
+    <td>Gen {2, 3}</td>
+    <td>8.73 &times; 10<sup>8</sup></td>
+    <td>最良</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Gen {1, 3}</td>
+    <td>6.15 &times; 10<sup>8</sup></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>Gen {1, 2}</td>
+    <td>2.94 &times; 10<sup>8</sup></td>
+    <td>最低</td>
+  </tr>
+</table>
+
+<div class="highlight-box">
+  <strong>核心的な知見:</strong> Gen 3が単一PMU配置として最適であり、
+  Gen {2, 3}の組み合わせが2台配置として最適。この結果は、
+  系統のダイナミクス構造（発電機の慣性、ネットワークトポロジ）を反映しており、
+  単なるトポロジカル分析では得られない知見です。
+</div>
+
+<h2>5. 手法の特長</h2>
+<ul>
+  <li>トポロジカル観測性だけでなく、状態推定の精度（質）を定量評価</li>
+  <li>発電機のダイナミクスモデルを考慮した配置最適化</li>
+  <li>グラミアン行列式の大きさでPMU配置を比較・ランキング可能</li>
+  <li>電力系統の安定度監視に特化した配置が可能</li>
+</ul>
+
+</div>
+</div>
+
+<!-- ===== デモタブ ===== -->
+<div id="tab-demo" class="tab-content">
+<div class="demo-container">
+  <div class="demo-sidebar">
+    <div class="section-title">WSCC 9-Bus System</div>
+    <p style="font-size:0.8rem; color:#889; margin-bottom:12px;">
+      発電機バス(1,2,3)をクリックしてPMUを配置し、グラミアン行列式のランキングを確認できます。
+    </p>
+
+    <div class="ctrl-group">
+      <label>発電機PMU選択</label>
+      <div style="text-align:center; margin:8px 0;">
+        <button class="gen-btn" id="gen-btn-1" onclick="toggleGen(1)">Gen 1 (Bus 1)</button>
+        <button class="gen-btn" id="gen-btn-2" onclick="toggleGen(2)">Gen 2 (Bus 2)</button>
+        <button class="gen-btn" id="gen-btn-3" onclick="toggleGen(3)">Gen 3 (Bus 3)</button>
+      </div>
+    </div>
+
+    <button class="secondary" onclick="clearGens()" style="margin-bottom:12px;">クリア</button>
+
+    <div class="section-title">グラミアン行列式 det(W<sub>o</sub>)</div>
+    <div id="gramian-display">
+      <div style="font-size: 1.6rem; font-weight: 700; color: var(--accent); text-align:center; margin:12px 0;" id="gramian-value">
+        &mdash;
+      </div>
+    </div>
+
+    <div class="section-title">単一PMUランキング</div>
+    <table class="ranking-table" id="single-ranking">
+      <tr><th>順位</th><th>PMU</th><th>det(W<sub>o</sub>)</th></tr>
+      <tr id="rank-s3"><td>1</td><td>Gen 3</td><td>5.82e4</td></tr>
+      <tr id="rank-s2"><td>2</td><td>Gen 2</td><td>3.41e4</td></tr>
+      <tr id="rank-s1"><td>3</td><td>Gen 1</td><td>1.25e4</td></tr>
+    </table>
+
+    <div class="section-title">2台PMUランキング</div>
+    <table class="ranking-table" id="pair-ranking">
+      <tr><th>順位</th><th>PMU</th><th>det(W<sub>o</sub>)</th></tr>
+      <tr id="rank-p23"><td>1</td><td>{2, 3}</td><td>8.73e8</td></tr>
+      <tr id="rank-p13"><td>2</td><td>{1, 3}</td><td>6.15e8</td></tr>
+      <tr id="rank-p12"><td>3</td><td>{1, 2}</td><td>2.94e8</td></tr>
+    </table>
+
+    <div class="section-title">グラミアン比較バー</div>
+    <div id="gramian-bars"></div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value" id="stat-pmu">0</div>
+        <div class="label">PMU数</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="stat-rank">&mdash;</div>
+        <div class="label">ランキング</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pmu-red)"></div>PMU設置 (発電機)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--gen-gold)"></div>発電機バス (PMUなし)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--unobs-gray)"></div>負荷バス</div>
+    </div>
+  </div>
+
+  <div class="demo-main">
+    <canvas id="network"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+</div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  document.querySelectorAll('.tab-btn')[id === 'explain' ? 0 : 1].classList.add('active');
+  if (id === 'demo') requestAnimationFrame(() => { resizeCanvas(); draw(); });
+}
+
+// WSCC 9-bus
+const N = 9;
+const generators = [1, 2, 3];
+const branches = [[1,4],[2,7],[3,9],[4,5],[4,6],[5,7],[6,9],[7,8],[8,9]];
+
+// Layout: generators at top, load buses forming a ring below
+const busCoords = {
+  1: [150, 60],
+  2: [400, 60],
+  3: [550, 280],
+  4: [150, 200],
+  5: [275, 280],
+  6: [150, 360],
+  7: [400, 200],
+  8: [475, 280],
+  9: [400, 360]
+};
+
+const adj = {};
+for (let i = 1; i <= N; i++) adj[i] = [];
+branches.forEach(([a,b]) => { adj[a].push(b); adj[b].push(a); });
+
+// Gramian data from Table II
+const gramianData = {
+  '1':   1.25e4,
+  '2':   3.41e4,
+  '3':   5.82e4,
+  '1,2': 2.94e8,
+  '1,3': 6.15e8,
+  '2,3': 8.73e8,
+  '1,2,3': 4.56e12
+};
+
+// Rankings
+const singleRank = { '3': 1, '2': 2, '1': 3 };
+const pairRank = { '2,3': 1, '1,3': 2, '1,2': 3 };
+
+let selectedGens = new Set();
+
+function toggleGen(g) {
+  if (selectedGens.has(g)) selectedGens.delete(g);
+  else selectedGens.add(g);
+  updateDisplay();
+}
+
+function clearGens() {
+  selectedGens.clear();
+  updateDisplay();
+}
+
+function updateDisplay() {
+  // Update buttons
+  [1,2,3].forEach(g => {
+    document.getElementById('gen-btn-' + g).classList.toggle('active', selectedGens.has(g));
+  });
+
+  const key = [...selectedGens].sort().join(',');
+  const gVal = gramianData[key];
+  const pmuCount = selectedGens.size;
+
+  document.getElementById('stat-pmu').textContent = pmuCount;
+  document.getElementById('gramian-value').innerHTML = gVal ? formatSci(gVal) : '&mdash;';
+
+  // Determine rank
+  let rank = '&mdash;';
+  if (pmuCount === 1) {
+    rank = singleRank[key] || '?';
+  } else if (pmuCount === 2) {
+    rank = pairRank[key] || '?';
+  } else if (pmuCount === 3) {
+    rank = '1 (全配置)';
+  }
+  document.getElementById('stat-rank').innerHTML = rank;
+
+  // Highlight ranking tables
+  document.querySelectorAll('.ranking-table tr').forEach(tr => tr.classList.remove('selected'));
+  if (pmuCount === 1) {
+    const el = document.getElementById('rank-s' + key);
+    if (el) el.classList.add('selected');
+  } else if (pmuCount === 2) {
+    const el = document.getElementById('rank-p' + key);
+    if (el) el.classList.add('selected');
+  }
+
+  // Update bars
+  updateBars();
+  draw();
+}
+
+function formatSci(val) {
+  if (!val) return '&mdash;';
+  const exp = Math.floor(Math.log10(val));
+  const mantissa = val / Math.pow(10, exp);
+  return mantissa.toFixed(2) + ' &times; 10<sup>' + exp + '</sup>';
+}
+
+function updateBars() {
+  const container = document.getElementById('gramian-bars');
+  container.innerHTML = '';
+  const pmuCount = selectedGens.size;
+  let entries;
+  if (pmuCount <= 1) {
+    entries = [
+      { label: 'Gen 3', val: gramianData['3'], key: '3' },
+      { label: 'Gen 2', val: gramianData['2'], key: '2' },
+      { label: 'Gen 1', val: gramianData['1'], key: '1' }
+    ];
+  } else {
+    entries = [
+      { label: '{2, 3}', val: gramianData['2,3'], key: '2,3' },
+      { label: '{1, 3}', val: gramianData['1,3'], key: '1,3' },
+      { label: '{1, 2}', val: gramianData['1,2'], key: '1,2' }
+    ];
+  }
+  const maxVal = Math.max(...entries.map(e => e.val));
+  const selKey = [...selectedGens].sort().join(',');
+
+  entries.forEach(e => {
+    const pct = (e.val / maxVal * 100).toFixed(1);
+    const isSelected = e.key === selKey;
+    const color = isSelected ? '#e94560' : '#3498db';
+    const div = document.createElement('div');
+    div.className = 'gramian-bar';
+    div.innerHTML = `
+      <span class="bar-label">${e.label}</span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${pct}%; background:${color}"></div>
+      </div>
+      <span class="bar-value">${e.val.toExponential(2)}</span>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// Canvas
+const canvas = document.getElementById('network');
+const ctx = canvas.getContext('2d');
+let W, H, scale, offsetX, offsetY;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  W = rect.width;
+  H = rect.height;
+  const xs = Object.values(busCoords).map(c => c[0]);
+  const ys = Object.values(busCoords).map(c => c[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const rangeX = maxX - minX || 1, rangeY = maxY - minY || 1;
+  scale = Math.min((W - 140) / rangeX, (H - 140) / rangeY);
+  offsetX = (W - rangeX * scale) / 2 - minX * scale;
+  offsetY = (H - rangeY * scale) / 2 - minY * scale;
+}
+
+function busXY(bus) {
+  const [bx, by] = busCoords[bus];
+  return [bx * scale + offsetX, by * scale + offsetY];
+}
+
+function draw() {
+  const dpr = devicePixelRatio;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  // Draw branches
+  branches.forEach(([a, b]) => {
+    const [x1, y1] = busXY(a);
+    const [x2, y2] = busXY(b);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = '#2a3a5c';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  // Draw buses
+  for (let i = 1; i <= N; i++) {
+    const [x, y] = busXY(i);
+    const isGen = generators.includes(i);
+    const hasPMU = selectedGens.has(i);
+    const r = isGen ? 26 : 18;
+
+    // Generator symbol (outer ring)
+    if (isGen) {
+      ctx.beginPath();
+      ctx.arc(x, y, r + 6, 0, Math.PI * 2);
+      ctx.strokeStyle = hasPMU ? '#e74c3c' : '#f1c40f';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = hasPMU ? '#e74c3c' : isGen ? '#f1c40f' : '#95a5a6';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = hasPMU ? 3 : 1.5;
+    ctx.stroke();
+
+    // Bus label
+    ctx.fillStyle = hasPMU || isGen ? '#fff' : '#222';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i, x, y);
+
+    // Generator label
+    if (isGen) {
+      ctx.fillStyle = hasPMU ? '#e74c3c' : '#f1c40f';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('G' + i, x, y - r - 14);
+    }
+  }
+
+  // Gramian info
+  const key = [...selectedGens].sort().join(',');
+  const gVal = gramianData[key];
+  ctx.fillStyle = '#e94560';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  if (selectedGens.size > 0 && gVal) {
+    const exp = Math.floor(Math.log10(gVal));
+    const mantissa = (gVal / Math.pow(10, exp)).toFixed(2);
+    ctx.fillText(`det(Wo) = ${mantissa} x 10^${exp}`, 20, 20);
+  } else {
+    ctx.fillText('発電機バスをクリックしてPMUを配置', 20, 20);
+  }
+  ctx.fillStyle = '#889';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('WSCC 9-Bus System (3 Generators)', 20, 44);
+}
+
+// Click on generator buses
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  for (const g of generators) {
+    const [x, y] = busXY(g);
+    if (Math.hypot(mx - x, my - y) < 32) {
+      toggleGen(g);
+      return;
+    }
+  }
+});
+
+// Tooltip
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const tt = document.getElementById('tooltip');
+  for (let i = 1; i <= N; i++) {
+    const [x, y] = busXY(i);
+    if (Math.hypot(mx - x, my - y) < 28) {
+      const isGen = generators.includes(i);
+      const hasPMU = selectedGens.has(i);
+      tt.innerHTML = `<strong>Bus ${i}</strong>${isGen ? ' (Generator)' : ' (Load)'}<br>` +
+        (hasPMU ? 'PMU設置済' : isGen ? 'クリックでPMU配置' : '負荷バス') +
+        `<br>隣接: [${adj[i].join(', ')}]`;
+      tt.style.display = 'block';
+      tt.style.left = (e.clientX - rect.left + 15) + 'px';
+      tt.style.top = (e.clientY - rect.top - 10) + 'px';
+      return;
+    }
+  }
+  tt.style.display = 'none';
+});
+
+// Init
+window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+resizeCanvas();
+updateDisplay();
+</script>
+</body>
+</html>

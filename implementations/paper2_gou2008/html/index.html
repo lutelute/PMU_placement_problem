@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper 2: Generalized ILP - Gou 2008</title>
+<style>
+  :root {
+    --pmu-red: #e74c3c;
+    --obs-green: #27ae60;
+    --unobs-gray: #95a5a6;
+    --partial-yellow: #f39c12;
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card: #0f3460;
+    --text: #e8e8e8;
+    --accent: #e94560;
+    --border: #2a3a5c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .back-link {
+    display: inline-block;
+    padding: 8px 16px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+    background: var(--surface);
+  }
+  .back-link:hover { text-decoration: underline; }
+  header {
+    background: linear-gradient(135deg, var(--surface), var(--card));
+    padding: 24px 32px;
+    border-bottom: 2px solid var(--accent);
+  }
+  header h1 { font-size: 1.4rem; color: #fff; }
+  header p { font-size: 0.85rem; color: #aab; margin-top: 4px; }
+  header a { color: var(--accent); font-size: 0.8rem; }
+
+  .tab-bar {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 14px 28px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #889;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+  }
+  .tab-btn:hover { color: #ccc; }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .explanation {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px;
+    line-height: 1.8;
+  }
+  .explanation h2 {
+    color: var(--accent);
+    margin: 24px 0 12px;
+    font-size: 1.2rem;
+  }
+  .explanation h3 {
+    color: #ccd;
+    margin: 16px 0 8px;
+  }
+  .explanation p, .explanation li {
+    color: #bbc;
+    margin-bottom: 8px;
+  }
+  .explanation ul { padding-left: 24px; }
+  .math-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    overflow-x: auto;
+    color: #dde;
+  }
+  .highlight-box {
+    background: rgba(233, 69, 96, 0.1);
+    border-left: 4px solid var(--accent);
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+  }
+  table.data-table th, table.data-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  table.data-table th {
+    background: var(--card);
+    color: var(--accent);
+  }
+
+  .demo-container {
+    display: flex;
+    height: calc(100vh - 120px);
+  }
+  .demo-sidebar {
+    width: 340px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .demo-main {
+    flex: 1;
+    position: relative;
+  }
+  canvas#network {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .ctrl-group { margin-bottom: 16px; }
+  .ctrl-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: #889;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  select, button {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  select:hover, button:hover { border-color: var(--accent); }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 600;
+  }
+  button.primary:hover { background: #d63851; }
+  button.secondary {
+    background: transparent;
+    border-color: var(--border);
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-card .value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-card .label {
+    font-size: 0.7rem;
+    color: #889;
+    text-transform: uppercase;
+  }
+
+  .legend {
+    margin-top: 16px;
+    font-size: 0.8rem;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #333;
+    flex-shrink: 0;
+  }
+  .pmu-list {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #aab;
+    background: var(--card);
+    padding: 8px 12px;
+    border-radius: 6px;
+    min-height: 32px;
+  }
+  .log-area {
+    margin-top: 12px;
+    background: #0d1117;
+    border-radius: 6px;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: #7ee;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .tooltip {
+    position: absolute;
+    background: rgba(15, 52, 96, 0.95);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+  }
+  .mode-desc {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    color: #aab;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../../../">&larr; 論文一覧</a>
+
+<header>
+  <h1>Paper 2: Generalized Integer Linear Programming - Depth of Unobservability</h1>
+  <p>B. Gou (2008) &mdash; IEEE Trans. Power Systems, Vol. 23, No. 3</p>
+  <a href="https://doi.org/10.1109/TPWRS.2008.926723" target="_blank">DOI: 10.1109/TPWRS.2008.926723</a>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('explain')">解説</button>
+  <button class="tab-btn" onclick="showTab('demo')">デモ</button>
+</div>
+
+<!-- ===== 解説タブ ===== -->
+<div id="tab-explain" class="tab-content active">
+<div class="explanation">
+
+<h2>1. 論文の背景と目的</h2>
+<p>
+  従来のPMU配置問題では「完全観測性（Complete Observability）」のみを考慮していました。
+  つまり、全てのバスが少なくとも1つのPMUによって直接的に観測される必要がありました。
+  Gou (2008) は<strong>「非観測深度（Depth-of-Unobservability）」</strong>という新しい概念を導入し、
+  この制約を一般化しました。
+</p>
+<p>
+  非観測深度 d は、最も近い観測済みバスから何ホップ離れているかを表します。
+  Complete observability は d=0 に相当します。d=1 では、未観測バスがあっても
+  その隣接バスの少なくとも1つが観測されていれば許容されます。
+</p>
+
+<h2>2. 非観測深度の定義</h2>
+<div class="highlight-box">
+  <strong>Depth-0 (Complete):</strong> 全バスが直接観測される。f &middot; x &ge; 1<br>
+  <strong>Depth-1:</strong> 未観測バスの隣接バスに観測済みバスが存在。f<sup>2</sup> &middot; x &ge; 1<br>
+  <strong>Depth-2:</strong> 2ホップ以内に観測済みバスが存在。f<sup>3</sup> &middot; x &ge; 1<br>
+  <strong>一般化:</strong> Depth-d &rArr; f<sup>(d+1)</sup> &middot; x &ge; 1
+</div>
+<p>
+  ここで f<sup>(k)</sup> は接続行列の k 乗のブール化（非ゼロ要素を1に置換）です。
+  f<sup>(k)</sup><sub>ij</sub> = 1 は、バス i からバス j へ k ホップ以内で到達可能であることを意味します。
+</p>
+
+<h2>3. 数学的定式化（一般化ILP）</h2>
+<div class="math-block">
+<strong>最小化:</strong>  &Sigma; c<sub>i</sub> &middot; x<sub>i</sub>  (i = 1, ..., N)<br>
+<strong>制約条件:</strong>  f<sup>(d+1)</sup> &middot; x &ge; 1<br>
+<strong>変数:</strong>  x<sub>i</sub> &isin; {0, 1}<br><br>
+ここで c<sub>i</sub> はバス i へのPMU設置コスト（通常は1）<br>
+d は許容される非観測深度
+</div>
+
+<h3>ZI（Zero Injection）バスを考慮する場合</h3>
+<p>
+  ZIバスでは KCL により追加の観測伝搬が可能です。ZIバスの存在により、
+  必要なPMU数がさらに減少する場合があります。
+</p>
+
+<h2>4. 解法</h2>
+<p>
+  Gou は標準的なILPソルバー（CPLEX等）を用いて厳密解を求めています。
+  接続行列の冪乗を事前計算することで、任意の深度に対応可能です。
+</p>
+
+<h2>5. ベンチマーク結果（ZIなし）</h2>
+<table class="data-table">
+  <tr><th>テスト系統</th><th>Complete (d=0)</th><th>Depth-1 (d=1)</th><th>Depth-2 (d=2)</th></tr>
+  <tr><td>IEEE 14-bus</td><td>4</td><td>2</td><td>2</td></tr>
+  <tr><td>IEEE 30-bus</td><td>10</td><td>5</td><td>3</td></tr>
+  <tr><td>IEEE 57-bus</td><td>17</td><td>9</td><td>6</td></tr>
+  <tr><td>IEEE 118-bus</td><td>32</td><td>17</td><td>11</td></tr>
+</table>
+
+<h2>6. ベンチマーク結果（ZIあり）</h2>
+<table class="data-table">
+  <tr><th>テスト系統</th><th>Complete (d=0)</th><th>Depth-1 (d=1)</th><th>Depth-2 (d=2)</th></tr>
+  <tr><td>IEEE 14-bus</td><td>3</td><td>2</td><td>1</td></tr>
+  <tr><td>IEEE 30-bus</td><td>7</td><td>4</td><td>2</td></tr>
+  <tr><td>IEEE 57-bus</td><td>11</td><td>7</td><td>4</td></tr>
+  <tr><td>IEEE 118-bus</td><td>28</td><td>15</td><td>9</td></tr>
+</table>
+
+<div class="highlight-box">
+  <strong>重要な知見：</strong> 非観測深度を1に緩和するだけで、必要なPMU数は約50%に削減されます。
+  これは実用上、全てのバスを直接観測する必要がない状況（例：系統状態の概略推定）で
+  大きなコスト削減を可能にします。
+</div>
+
+</div>
+</div>
+
+<!-- ===== デモタブ ===== -->
+<div id="tab-demo" class="tab-content">
+<div class="demo-container">
+  <div class="demo-sidebar">
+    <div class="ctrl-group">
+      <label>観測モード</label>
+      <select id="modeSelect" onchange="onModeChange()">
+        <option value="complete">Complete (Depth-0)</option>
+        <option value="depth1">Depth-1</option>
+        <option value="depth2">Depth-2</option>
+      </select>
+    </div>
+
+    <div class="mode-desc" id="modeDesc">
+      全てのバスがPMUまたはPMU隣接バスとして直接観測される必要があります。
+    </div>
+
+    <div class="ctrl-group" style="display:flex;gap:8px;margin-top:12px">
+      <button class="primary" onclick="runOptimal()" style="flex:1">最適配置</button>
+      <button class="secondary" onclick="clearAll()" style="flex:1">全撤去</button>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value" id="statPMU">0</div>
+        <div class="label">PMU数</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statObs">0</div>
+        <div class="label">観測バス</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statTotal">14</div>
+        <div class="label">全バス</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="statRate">0%</div>
+        <div class="label">観測率</div>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <label>PMU設置バス</label>
+      <div class="pmu-list" id="pmuList">なし</div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pmu-red)"></div>PMU設置</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--obs-green)"></div>直接観測済み</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--partial-yellow)"></div>深度内で観測</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--unobs-gray)"></div>未観測</div>
+    </div>
+
+    <div class="ctrl-group" style="margin-top:12px">
+      <label>実行ログ</label>
+      <div class="log-area" id="logArea">Ready. バスをクリックしてPMUを設置/撤去できます。</div>
+    </div>
+  </div>
+
+  <div class="demo-main">
+    <canvas id="network"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+</div>
+</div>
+
+<script>
+// =============================================================================
+// IEEE 14-bus System Data
+// =============================================================================
+const N = 14;
+const BRANCHES = [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],
+                   [6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]];
+const BUS_POS = {
+  1:[80,350], 2:[200,400], 3:[350,400], 4:[350,280], 5:[200,280],
+  6:[80,180], 7:[250,200], 8:[250,120], 9:[400,180], 10:[480,180],
+  11:[150,100], 12:[80,60], 13:[200,60], 14:[400,80]
+};
+
+// Known optimal solutions
+const OPTIMAL = {
+  complete: [2, 6, 7, 9],
+  depth1: [2, 9],
+  depth2: [4, 9]
+};
+
+// =============================================================================
+// State
+// =============================================================================
+let pmuState = {};
+for (let i = 1; i <= N; i++) pmuState[i] = false;
+let canvas, ctx;
+let hoveredBus = null;
+let busPositions = {};
+
+// =============================================================================
+// Adjacency
+// =============================================================================
+function buildAdj() {
+  const adj = {};
+  for (let i = 1; i <= N; i++) adj[i] = [];
+  for (const [a, b] of BRANCHES) { adj[a].push(b); adj[b].push(a); }
+  return adj;
+}
+const ADJ = buildAdj();
+
+// Build connectivity matrix
+function buildConnMatrix() {
+  const f = Array.from({length: N}, () => new Float64Array(N));
+  for (let i = 0; i < N; i++) f[i][i] = 1;
+  for (const [a, b] of BRANCHES) {
+    f[a-1][b-1] = 1;
+    f[b-1][a-1] = 1;
+  }
+  return f;
+}
+
+// Boolean matrix multiply
+function boolMatMul(A, B) {
+  const n = A.length;
+  const C = Array.from({length: n}, () => new Float64Array(n));
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < n; j++) {
+      for (let k = 0; k < n; k++) {
+        if (A[i][k] && B[k][j]) { C[i][j] = 1; break; }
+      }
+    }
+  return C;
+}
+
+// Get f^(d+1) (boolean power of connectivity matrix)
+function getPowerMatrix(depth) {
+  let f = buildConnMatrix();
+  let result = buildConnMatrix();
+  for (let d = 0; d < depth; d++) {
+    result = boolMatMul(result, f);
+  }
+  return result;
+}
+
+// =============================================================================
+// Observability check with depth
+// =============================================================================
+function checkObservability() {
+  const mode = document.getElementById('modeSelect').value;
+  let depth = 0;
+  if (mode === 'depth1') depth = 1;
+  if (mode === 'depth2') depth = 2;
+
+  const fPow = getPowerMatrix(depth);
+  const x = new Float64Array(N);
+  const pmuBuses = [];
+  for (let i = 1; i <= N; i++) {
+    if (pmuState[i]) { x[i-1] = 1; pmuBuses.push(i); }
+  }
+
+  // Direct observability (depth-0)
+  const fDirect = buildConnMatrix();
+  const directObs = new Set();
+  for (let i = 0; i < N; i++) {
+    let sum = 0;
+    for (let j = 0; j < N; j++) sum += fDirect[i][j] * x[j];
+    if (sum >= 1) directObs.add(i + 1);
+  }
+
+  // Depth-d observability
+  const observed = new Set();
+  for (let i = 0; i < N; i++) {
+    let sum = 0;
+    for (let j = 0; j < N; j++) sum += fPow[i][j] * x[j];
+    if (sum >= 1) observed.add(i + 1);
+  }
+
+  return { observed, directObs, pmuBuses, complete: observed.size === N };
+}
+
+// =============================================================================
+// Init
+// =============================================================================
+window.addEventListener('load', () => {
+  canvas = document.getElementById('network');
+  ctx = canvas.getContext('2d');
+  canvas.addEventListener('click', onCanvasClick);
+  canvas.addEventListener('mousemove', onCanvasMove);
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+  updateStats();
+});
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  computePositions();
+  draw();
+}
+
+function computePositions() {
+  const w = canvas.width / devicePixelRatio;
+  const h = canvas.height / devicePixelRatio;
+  const xs = Object.values(BUS_POS).map(p => p[0]);
+  const ys = Object.values(BUS_POS).map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const pad = 60;
+  busPositions = {};
+  for (const [bus, [px, py]] of Object.entries(BUS_POS)) {
+    busPositions[bus] = [
+      pad + (px - minX) / (maxX - minX || 1) * (w - 2*pad),
+      pad + (py - minY) / (maxY - minY || 1) * (h - 2*pad)
+    ];
+  }
+}
+
+// =============================================================================
+// Tabs
+// =============================================================================
+function showTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['explain','demo'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach((t, i) => {
+    t.classList.toggle('active', ['tab-explain','tab-demo'][i] === 'tab-' + name);
+  });
+  if (name === 'demo') setTimeout(resizeCanvas, 50);
+}
+
+// =============================================================================
+// Drawing
+// =============================================================================
+function draw() {
+  const w = canvas.width / devicePixelRatio;
+  const h = canvas.height / devicePixelRatio;
+  ctx.clearRect(0, 0, w, h);
+
+  const { observed, directObs, pmuBuses } = checkObservability();
+
+  // Draw edges
+  ctx.strokeStyle = '#3a4a6c';
+  ctx.lineWidth = 2;
+  for (const [a, b] of BRANCHES) {
+    const pa = busPositions[a], pb = busPositions[b];
+    if (!pa || !pb) continue;
+    ctx.beginPath();
+    ctx.moveTo(pa[0], pa[1]);
+    ctx.lineTo(pb[0], pb[1]);
+    ctx.stroke();
+  }
+
+  // Draw nodes
+  const R = 22;
+  for (let bus = 1; bus <= N; bus++) {
+    const p = busPositions[bus];
+    if (!p) continue;
+    const isPMU = pmuState[bus];
+    const isDirect = directObs.has(bus);
+    const isDepthObs = observed.has(bus);
+
+    if (hoveredBus === bus) {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], R + 6, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(233,69,96,0.3)';
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], R, 0, Math.PI*2);
+    if (isPMU) {
+      ctx.fillStyle = '#e74c3c';
+    } else if (isDirect) {
+      ctx.fillStyle = '#27ae60';
+    } else if (isDepthObs) {
+      ctx.fillStyle = '#f39c12';
+    } else {
+      ctx.fillStyle = '#555e6e';
+    }
+    ctx.fill();
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(bus, p[0], p[1]);
+  }
+
+  // Mode label
+  const mode = document.getElementById('modeSelect').value;
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillStyle = 'rgba(233,69,96,0.7)';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  const modeLabels = { complete: 'Complete (d=0)', depth1: 'Depth-1 (d=1)', depth2: 'Depth-2 (d=2)' };
+  ctx.fillText(modeLabels[mode], 10, 10);
+}
+
+// =============================================================================
+// Interaction
+// =============================================================================
+function getBusAt(x, y) {
+  for (let bus = 1; bus <= N; bus++) {
+    const p = busPositions[bus];
+    if (!p) continue;
+    const dx = x - p[0], dy = y - p[1];
+    if (dx*dx + dy*dy < 28*28) return bus;
+  }
+  return null;
+}
+
+function onCanvasClick(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const bus = getBusAt(x, y);
+  if (bus) {
+    pmuState[bus] = !pmuState[bus];
+    updateStats();
+    draw();
+    log('Bus ' + bus + ': PMU ' + (pmuState[bus] ? '設置' : '撤去'));
+  }
+}
+
+function onCanvasMove(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const bus = getBusAt(x, y);
+  if (bus !== hoveredBus) {
+    hoveredBus = bus;
+    draw();
+    const tip = document.getElementById('tooltip');
+    if (bus) {
+      const neighbors = ADJ[bus];
+      tip.innerHTML = '<strong>Bus ' + bus + '</strong><br>PMU: ' + (pmuState[bus]?'Yes':'No') + '<br>隣接: ' + neighbors.join(', ');
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX - canvas.parentElement.getBoundingClientRect().left + 15) + 'px';
+      tip.style.top = (e.clientY - canvas.parentElement.getBoundingClientRect().top + 15) + 'px';
+    } else {
+      tip.style.display = 'none';
+    }
+  }
+}
+
+// =============================================================================
+// Controls
+// =============================================================================
+function onModeChange() {
+  const mode = document.getElementById('modeSelect').value;
+  const desc = document.getElementById('modeDesc');
+  if (mode === 'complete') {
+    desc.textContent = '全てのバスがPMUまたはPMU隣接バスとして直接観測される必要があります。制約: f \u00B7 x \u2265 1';
+  } else if (mode === 'depth1') {
+    desc.textContent = '未観測バスがあっても、その隣接バスに観測済みバスがあればOK。1ホップ以内に観測済みバスが存在。制約: f\u00B2 \u00B7 x \u2265 1';
+  } else {
+    desc.textContent = '2ホップ以内に観測済みバスが存在すればOK。制約: f\u00B3 \u00B7 x \u2265 1';
+  }
+  updateStats();
+  draw();
+  log('モード変更: ' + mode);
+}
+
+function runOptimal() {
+  const mode = document.getElementById('modeSelect').value;
+  const opt = OPTIMAL[mode];
+  for (let i = 1; i <= N; i++) pmuState[i] = false;
+  for (const b of opt) pmuState[b] = true;
+  updateStats();
+  draw();
+  log('最適配置 (' + mode + '): buses [' + opt.join(', ') + '] = ' + opt.length + ' PMUs');
+}
+
+function clearAll() {
+  for (let i = 1; i <= N; i++) pmuState[i] = false;
+  updateStats();
+  draw();
+  log('全PMU撤去');
+}
+
+function updateStats() {
+  const { observed, pmuBuses, complete } = checkObservability();
+  document.getElementById('statPMU').textContent = pmuBuses.length;
+  document.getElementById('statObs').textContent = observed.size;
+  document.getElementById('statRate').textContent = Math.round(observed.size / N * 100) + '%';
+  document.getElementById('statRate').style.color = complete ? 'var(--obs-green)' : 'var(--accent)';
+  document.getElementById('pmuList').textContent = pmuBuses.length > 0 ? pmuBuses.join(', ') : 'なし';
+}
+
+function log(msg) {
+  const el = document.getElementById('logArea');
+  const time = new Date().toLocaleTimeString();
+  el.innerHTML += '\n[' + time + '] ' + msg;
+  el.scrollTop = el.scrollHeight;
+}
+</script>
+</body>
+</html>
