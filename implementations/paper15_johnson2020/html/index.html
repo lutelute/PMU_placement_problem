@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper 15: Johnson &amp; Moger 2020 — PMU最適配置手法の総合レビュー</title>
+<style>
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --card: #0f3460;
+  --text: #e8e8e8;
+  --accent: #e94560;
+  --border: #2a3a5c;
+  --pmu-red: #e74c3c;
+  --obs-green: #27ae60;
+  --unobs: #555;
+  --zib-yellow: #f39c12;
+  --hybrid-purple: #9b59b6;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.back-link {
+  display: inline-block;
+  padding: 12px 20px;
+  font-size: 0.95rem;
+}
+header {
+  text-align: center;
+  padding: 20px 20px 10px;
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+}
+header h1 { font-size: 1.5rem; margin-bottom: 4px; color: var(--accent); }
+header .subtitle { font-size: 0.95rem; opacity: 0.85; margin-bottom: 6px; }
+header .doi { font-size: 0.8rem; opacity: 0.6; }
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 20px;
+  background: var(--surface);
+}
+.tab-btn {
+  padding: 10px 28px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+.tab-btn.active { background: var(--card); border-bottom-color: var(--card); color: var(--accent); font-weight: bold; }
+.tab-btn:hover { background: var(--card); }
+.tab-content { display: none; padding: 20px; max-width: 1200px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* 解説 tab */
+.section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+.section h2 { color: var(--accent); font-size: 1.2rem; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.section h3 { color: #7ec8e3; font-size: 1rem; margin: 12px 0 6px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media(max-width:800px){ .grid-2{grid-template-columns:1fr;} }
+.cat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.cat-card h4 { font-size: 1rem; margin-bottom: 8px; }
+.cat-card ul { padding-left: 18px; font-size: 0.9rem; }
+.cat-card ul li { margin-bottom: 4px; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin: 2px; font-weight: bold; }
+.tag-conv { background: #2980b9; color: #fff; }
+.tag-heur { background: #27ae60; color: #fff; }
+.tag-meta { background: #f39c12; color: #fff; }
+.tag-hybrid { background: #9b59b6; color: #fff; }
+table.ref-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
+table.ref-table th, table.ref-table td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+table.ref-table th { background: var(--card); color: var(--accent); }
+table.ref-table tr:nth-child(even) { background: rgba(15,52,96,0.3); }
+
+/* Demo tab */
+.controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+.control-group { display: flex; flex-direction: column; gap: 4px; }
+.control-group label { font-size: 0.8rem; opacity: 0.7; }
+select, button {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+select:hover, button:hover { border-color: var(--accent); }
+.result-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  align-items: center;
+}
+.result-item { font-size: 0.9rem; }
+.result-item .val { color: var(--accent); font-weight: bold; font-size: 1.1rem; }
+.canvas-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  position: relative;
+}
+canvas { max-width: 100%; }
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 12px;
+  justify-content: center;
+  font-size: 0.8rem;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 14px; height: 14px; border-radius: 50%; }
+.note-box {
+  margin-top: 16px;
+  padding: 14px;
+  background: rgba(233,69,96,0.1);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+.method-panel {
+  margin-top: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.method-panel h3 { color: var(--accent); margin-bottom: 10px; font-size: 1rem; }
+.constraint-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 8px; }
+.constraint-table th, .constraint-table td { border: 1px solid var(--border); padding: 5px 8px; }
+.constraint-table th { background: var(--card); color: #7ec8e3; }
+.obs-badge {
+  display: inline-block;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 22px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: #fff;
+}
+</style>
+</head>
+<body>
+
+<div class="back-link"><a href="../../../">← 論文一覧</a></div>
+
+<header>
+  <h1>Paper 15: Critical Review of Methods for Optimal Placement of PMUs</h1>
+  <div class="subtitle">Johnson &amp; Moger (2020) — レビュー論文：PMU最適配置手法の包括的分類と比較</div>
+  <div class="doi">DOI: <a href="https://doi.org/10.1002/2050-7038.12698" target="_blank">10.1002/2050-7038.12698</a></div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('explain')">解説</button>
+  <button class="tab-btn" onclick="switchTab('demo')">デモ</button>
+</div>
+
+<div id="tab-explain" class="tab-content active">
+  <div class="section">
+    <h2>論文概要</h2>
+    <p>本論文は2003年から2020年までに発表されたPMU最適配置手法を<strong>体系的にレビュー</strong>した総合論文です。手法を<strong>4つのカテゴリ</strong>に分類し、各手法の特徴・制約条件・適用されたテストシステムを比較分析しています。特に<strong>ハイブリッド手法</strong>（数理最適化とヒューリスティックの組合せ）への進化トレンドを重点的に考察しています。</p>
+  </div>
+
+  <div class="section">
+    <h2>手法分類（4カテゴリ）</h2>
+    <div class="grid-2">
+      <div class="cat-card">
+        <h4><span class="tag tag-conv">Conventional</span> 従来型数理手法</h4>
+        <ul>
+          <li><strong>ILP</strong> (Integer Linear Programming) — 整数線形計画法。最も基本的なアプローチ。</li>
+          <li><strong>BILP</strong> (Binary Integer LP) — 0/1変数で定式化。Gurobi等で厳密解。</li>
+          <li><strong>NLP</strong> (Nonlinear Programming) — 非線形制約を含む場合。</li>
+          <li><strong>SDP</strong> (Semidefinite Programming) — 半正定値計画法。</li>
+        </ul>
+        <p style="font-size:0.85rem;margin-top:8px;opacity:0.8;">利点：最適性保証。欠点：大規模系統で計算量爆発。</p>
+      </div>
+      <div class="cat-card">
+        <h4><span class="tag tag-heur">Heuristic</span> ヒューリスティック手法</h4>
+        <ul>
+          <li><strong>Depth First Search</strong> — 探索木ベース</li>
+          <li><strong>Graph Theoretic</strong> — 位相的支配集合</li>
+          <li><strong>Greedy Algorithm</strong> — 貪欲法ベース</li>
+          <li><strong>BSA</strong> (Bus Spanning Analysis)</li>
+        </ul>
+        <p style="font-size:0.85rem;margin-top:8px;opacity:0.8;">利点：実装容易・高速。欠点：最適性保証なし。</p>
+      </div>
+      <div class="cat-card">
+        <h4><span class="tag tag-meta">Meta-heuristic</span> メタヒューリスティック手法</h4>
+        <ul>
+          <li><strong>GA</strong> (Genetic Algorithm) — 遺伝的アルゴリズム</li>
+          <li><strong>PSO</strong> (Particle Swarm Optimization) — 粒子群最適化</li>
+          <li><strong>DE</strong> (Differential Evolution) — 差分進化</li>
+          <li><strong>SA</strong> (Simulated Annealing) — 焼きなまし法</li>
+          <li><strong>Tabu Search</strong> / <strong>ABC</strong> / <strong>Firefly</strong> 等</li>
+        </ul>
+        <p style="font-size:0.85rem;margin-top:8px;opacity:0.8;">利点：大規模問題に適応。欠点：パラメータ調整が必要。</p>
+      </div>
+      <div class="cat-card">
+        <h4><span class="tag tag-hybrid">Hybrid</span> ハイブリッド手法 ★本論文の重点</h4>
+        <ul>
+          <li><strong>ILP + GA</strong> — 数理的制約 + 進化的探索</li>
+          <li><strong>PSO + Greedy</strong> — 群知能 + 貪欲改善</li>
+          <li><strong>GA + SA</strong> — 探索と局所改善の組合せ</li>
+          <li><strong>BIP + Graph Theory</strong> — 厳密解 + 構造的知識</li>
+        </ul>
+        <p style="font-size:0.85rem;margin-top:8px;opacity:0.8;">利点：精度と速度のバランス。2015年以降の主流。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>制約条件タイプ（Sections 2.2.1–2.2.15）</h2>
+    <p style="margin-bottom:10px;">レビュー論文は<strong>15種類以上</strong>の制約条件を体系的に整理しています：</p>
+    <table class="ref-table">
+      <tr><th>#</th><th>制約タイプ</th><th>説明</th><th>影響</th></tr>
+      <tr><td>1</td><td>Complete Observability</td><td>全バスの状態を観測可能にする基本制約</td><td>基本</td></tr>
+      <tr><td>2</td><td>Zero Injection Bus (ZIB)</td><td>注入電力ゼロのバスを利用してPMU数を削減</td><td>PMU数 ↓</td></tr>
+      <tr><td>3</td><td>N-1 Line Contingency</td><td>任意の1線路が故障しても観測可能</td><td>PMU数 ↑</td></tr>
+      <tr><td>4</td><td>N-1 PMU Loss</td><td>任意の1PMUが故障しても観測可能</td><td>PMU数 ↑↑</td></tr>
+      <tr><td>5</td><td>Channel Limitation</td><td>PMUの測定チャネル数に上限</td><td>PMU数 ↑</td></tr>
+      <tr><td>6</td><td>Conventional Measurement</td><td>既存のRTU/SCADA測定を活用</td><td>PMU数 ↓</td></tr>
+      <tr><td>7</td><td>Multi-stage Installation</td><td>段階的にPMUを導入する計画</td><td>計画問題</td></tr>
+      <tr><td>8</td><td>Uncertainty</td><td>不確実性を考慮した頑健配置</td><td>PMU数 ↑</td></tr>
+      <tr><td>9</td><td>Cost Optimization</td><td>PMU価格・通信コストの最小化</td><td>コスト最適</td></tr>
+      <tr><td>10</td><td>Bad Data Detection</td><td>不良データ検出能力の確保</td><td>PMU数 ↑</td></tr>
+      <tr><td>11</td><td>Network Topology Changes</td><td>系統構成変更に対応</td><td>PMU数 ↑</td></tr>
+      <tr><td>12</td><td>Controlled Islanding</td><td>系統分離時の観測可能性</td><td>配置変更</td></tr>
+      <tr><td>13</td><td>State Estimation Quality</td><td>状態推定精度の保証</td><td>PMU数 ↑</td></tr>
+      <tr><td>14</td><td>Communication Infrastructure</td><td>通信網の制約・遅延考慮</td><td>配置変更</td></tr>
+      <tr><td>15</td><td>Power System Protection</td><td>保護リレー協調との統合</td><td>配置変更</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>テストシステム比較</h2>
+    <table class="ref-table">
+      <tr><th>テストシステム</th><th>バス数</th><th>ブランチ数</th><th>PMU最小数（基本）</th><th>PMU数（ZIB考慮）</th></tr>
+      <tr><td>IEEE 14</td><td>14</td><td>20</td><td>4</td><td>3</td></tr>
+      <tr><td>IEEE 24</td><td>24</td><td>34</td><td>7</td><td>6</td></tr>
+      <tr><td>IEEE 30</td><td>30</td><td>41</td><td>10</td><td>7</td></tr>
+      <tr><td>IEEE 39</td><td>39</td><td>46</td><td>13</td><td>11</td></tr>
+      <tr><td>IEEE 57</td><td>57</td><td>78</td><td>17</td><td>13</td></tr>
+      <tr><td>IEEE 118</td><td>118</td><td>186</td><td>32</td><td>28</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>トレンド：ハイブリッド手法の台頭</h2>
+    <p>2003-2010年は従来型（ILP/BILP）が主流でしたが、2010年以降はメタヒューリスティック手法が増加。2015年以降は<strong>ハイブリッド手法</strong>が急増し、数理最適化の最適性保証とヒューリスティックの計算効率を両立する研究が活発化しています。</p>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:140px;background:var(--card);border-radius:6px;padding:12px;text-align:center;">
+        <div style="font-size:0.8rem;opacity:0.7;">2003-2010</div>
+        <div style="font-size:1.2rem;font-weight:bold;color:#2980b9;">従来型中心</div>
+      </div>
+      <div style="flex:1;min-width:140px;background:var(--card);border-radius:6px;padding:12px;text-align:center;">
+        <div style="font-size:0.8rem;opacity:0.7;">2010-2015</div>
+        <div style="font-size:1.2rem;font-weight:bold;color:#f39c12;">メタヒューリスティック</div>
+      </div>
+      <div style="flex:1;min-width:140px;background:var(--card);border-radius:6px;padding:12px;text-align:center;">
+        <div style="font-size:0.8rem;opacity:0.7;">2015-2020</div>
+        <div style="font-size:1.2rem;font-weight:bold;color:#9b59b6;">ハイブリッド主流</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tab-demo" class="tab-content">
+  <div class="note-box">
+    本論文はレビュー論文であり、独自のアルゴリズムは提案していません。代わりに、文献で提案された<strong>15種類以上の制約条件タイプ</strong>を選択的に適用したPMU配置を体験できます。各制約の効果をインタラクティブに比較してください。
+  </div>
+
+  <div class="controls-row" style="margin-top:16px;">
+    <div class="control-group">
+      <label>テストシステム</label>
+      <select id="sel-system" onchange="onSystemChange()">
+        <option value="ieee14">IEEE 14-Bus</option>
+        <option value="ieee30">IEEE 30-Bus</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>制約モード</label>
+      <select id="sel-constraint" onchange="onConstraintChange()">
+        <option value="complete">Complete Observability（基本）</option>
+        <option value="zib">With ZIB（ZI考慮）</option>
+        <option value="n1pmu">N-1 PMU Loss（PMU損失）</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>&nbsp;</label>
+      <button onclick="runPlacement()">配置実行</button>
+    </div>
+  </div>
+
+  <div class="result-bar" id="result-bar">
+    <div class="result-item">PMU数: <span class="val" id="res-pmu">-</span></div>
+    <div class="result-item">観測バス: <span class="val" id="res-obs">-</span> / <span id="res-total">-</span></div>
+    <div class="result-item">制約: <span class="val" id="res-constraint">-</span></div>
+    <div class="result-item">代表的手法: <span id="res-methods"></span></div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="netCanvas" width="620" height="480"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pmu-red);"></div> PMU配置バス</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--obs-green);"></div> 観測可能バス</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--unobs);"></div> 未観測バス</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--zib-yellow);"></div> Zero Injection Bus</div>
+    </div>
+  </div>
+
+  <div class="method-panel">
+    <h3>制約条件と手法の対応表</h3>
+    <table class="constraint-table" id="method-table">
+      <thead>
+        <tr>
+          <th>制約タイプ</th>
+          <th>手法カテゴリ</th>
+          <th>代表的な研究</th>
+          <th>IEEE 14結果</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// === DATA ===
+const SYSTEMS = {
+  ieee14: {
+    name: 'IEEE 14-Bus',
+    n: 14,
+    branches: [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],[6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]],
+    pos: {1:[80,350],2:[200,400],3:[350,400],4:[350,280],5:[200,280],6:[80,180],7:[250,200],8:[250,120],9:[400,180],10:[480,180],11:[150,100],12:[80,60],13:[200,60],14:[400,80]},
+    zibs: [7],
+    placements: {
+      complete: [2,6,7,9],
+      zib: [2,6,9],
+      n1pmu: [1,2,3,6,7,9,10,13,14]
+    }
+  },
+  ieee30: {
+    name: 'IEEE 30-Bus',
+    n: 30,
+    branches: [[1,2],[1,3],[2,4],[2,5],[2,6],[3,4],[4,6],[4,12],[5,7],[6,7],[6,8],[6,9],[6,10],[6,28],[8,28],[9,10],[9,11],[10,17],[10,20],[10,21],[10,22],[12,13],[12,14],[12,15],[12,16],[14,15],[15,18],[15,23],[16,17],[18,19],[19,20],[21,22],[22,24],[23,24],[24,25],[25,26],[25,27],[27,28],[27,29],[27,30],[29,30]],
+    pos: null,
+    zibs: [6,9,22,25,27,28],
+    placements: {
+      complete: [2,4,10,12,15,18,25,27],
+      zib: [3,10,12,15,19,25,29],
+      n1pmu: [1,2,3,5,6,8,10,11,12,15,17,19,20,23,25,26,27,29]
+    }
+  }
+};
+
+const METHOD_DATA = [
+  { constraint:'Complete Observability', cat:'Conventional', tag:'tag-conv', refs:'Xu & Abur (2004), Gou (2008)', ieee14:'4 PMUs' },
+  { constraint:'Complete Observability', cat:'Meta-heuristic', tag:'tag-meta', refs:'Aminifar et al. (2009, GA)', ieee14:'4 PMUs' },
+  { constraint:'With ZIB', cat:'Conventional', tag:'tag-conv', refs:'Gou (2008, ILP)', ieee14:'3 PMUs' },
+  { constraint:'With ZIB', cat:'Hybrid', tag:'tag-hybrid', refs:'Chakrabarti et al. (2009, ILP+Graph)', ieee14:'3 PMUs' },
+  { constraint:'N-1 PMU Loss', cat:'Conventional', tag:'tag-conv', refs:'Abur & Exposito (2004)', ieee14:'9 PMUs' },
+  { constraint:'N-1 PMU Loss', cat:'Meta-heuristic', tag:'tag-meta', refs:'Peng et al. (2010, PSO)', ieee14:'9 PMUs' },
+  { constraint:'N-1 Line', cat:'Hybrid', tag:'tag-hybrid', refs:'Rahman & Hussain (2016)', ieee14:'6-7 PMUs' },
+  { constraint:'Channel Limits', cat:'Hybrid', tag:'tag-hybrid', refs:'Manousakis & Korres (2012)', ieee14:'5-6 PMUs' },
+  { constraint:'Multi-stage', cat:'Hybrid', tag:'tag-hybrid', refs:'Mahari & Seyedi (2016, ILP+GA)', ieee14:'段階的' },
+  { constraint:'Cost Optimization', cat:'Meta-heuristic', tag:'tag-meta', refs:'Dua et al. (2008, DE)', ieee14:'4 PMUs + cost' }
+];
+
+// Force-directed layout for IEEE 30
+function computeForceLayout(sys) {
+  const n = sys.n;
+  const W = 580, H = 440, pad = 40;
+  let px = new Float64Array(n+1), py = new Float64Array(n+1);
+  // init random
+  for (let i = 1; i <= n; i++) {
+    px[i] = pad + Math.random() * (W - 2*pad);
+    py[i] = pad + Math.random() * (H - 2*pad);
+  }
+  const adj = {};
+  for (let i = 1; i <= n; i++) adj[i] = [];
+  sys.branches.forEach(([a,b]) => { adj[a].push(b); adj[b].push(a); });
+
+  const kAttr = 0.01, kRep = 8000, dt = 0.8, iter = 400;
+  for (let it = 0; it < iter; it++) {
+    let fx = new Float64Array(n+1), fy = new Float64Array(n+1);
+    // repulsion
+    for (let i = 1; i <= n; i++) {
+      for (let j = i+1; j <= n; j++) {
+        let dx = px[i]-px[j], dy = py[i]-py[j];
+        let d2 = dx*dx+dy*dy+1;
+        let f = kRep / d2;
+        fx[i] += f*dx; fy[i] += f*dy;
+        fx[j] -= f*dx; fy[j] -= f*dy;
+      }
+    }
+    // attraction
+    sys.branches.forEach(([a,b]) => {
+      let dx = px[b]-px[a], dy = py[b]-py[a];
+      let d = Math.sqrt(dx*dx+dy*dy);
+      let f = kAttr * d;
+      fx[a] += f*dx/d; fy[a] += f*dy/d;
+      fx[b] -= f*dx/d; fy[b] -= f*dy/d;
+    });
+    let cooling = 1 - it/iter;
+    for (let i = 1; i <= n; i++) {
+      px[i] += fx[i]*dt*cooling;
+      py[i] += fy[i]*dt*cooling;
+      px[i] = Math.max(pad, Math.min(W-pad, px[i]));
+      py[i] = Math.max(pad, Math.min(H-pad, py[i]));
+    }
+  }
+  let result = {};
+  for (let i = 1; i <= n; i++) result[i] = [Math.round(px[i]), Math.round(py[i])];
+  return result;
+}
+
+// Compute adjacency
+function getAdj(sys) {
+  const adj = {};
+  for (let i = 1; i <= sys.n; i++) adj[i] = [];
+  sys.branches.forEach(([a,b]) => { adj[a].push(b); adj[b].push(a); });
+  return adj;
+}
+
+// Compute observed buses
+function computeObs(sys, pmuBuses, constraint) {
+  const adj = getAdj(sys);
+  const obs = {};
+  for (let i = 1; i <= sys.n; i++) obs[i] = 0;
+
+  pmuBuses.forEach(b => {
+    obs[b]++;
+    adj[b].forEach(nb => obs[nb]++);
+  });
+
+  // ZIB propagation for 'zib' mode
+  if (constraint === 'zib') {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      sys.zibs.forEach(z => {
+        const neighbors = adj[z];
+        const unobs = neighbors.filter(nb => obs[nb] === 0);
+        const selfObs = obs[z] > 0;
+        if (selfObs && unobs.length === 1) {
+          obs[unobs[0]]++;
+          changed = true;
+        } else if (!selfObs) {
+          const allNeighborsObs = neighbors.every(nb => obs[nb] > 0);
+          if (allNeighborsObs) {
+            obs[z]++;
+            changed = true;
+          }
+        }
+      });
+    }
+  }
+
+  return obs;
+}
+
+// Draw network
+function draw() {
+  const sysKey = document.getElementById('sel-system').value;
+  const consKey = document.getElementById('sel-constraint').value;
+  const sys = SYSTEMS[sysKey];
+
+  if (!sys.pos) sys.pos = computeForceLayout(sys);
+  const pos = sys.pos;
+  const pmuBuses = sys.placements[consKey];
+  const pmuSet = new Set(pmuBuses);
+  const zibSet = new Set(sys.zibs);
+  const obs = computeObs(sys, pmuBuses, consKey);
+
+  const canvas = document.getElementById('netCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // Scale positions
+  let xs = Object.values(pos).map(p=>p[0]), ys = Object.values(pos).map(p=>p[1]);
+  let minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+  let sx = (W-80)/(maxX-minX||1), sy = (H-80)/(maxY-minY||1), sc = Math.min(sx,sy);
+  let offX = (W - (maxX-minX)*sc)/2 - minX*sc;
+  let offY = (H - (maxY-minY)*sc)/2 - minY*sc;
+  function tx(i) { return pos[i][0]*sc+offX; }
+  function ty(i) { return pos[i][1]*sc+offY; }
+
+  ctx.clearRect(0,0,W,H);
+
+  // Draw branches
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#2a3a5c';
+  sys.branches.forEach(([a,b]) => {
+    ctx.beginPath();
+    ctx.moveTo(tx(a),ty(a));
+    ctx.lineTo(tx(b),ty(b));
+    ctx.stroke();
+  });
+
+  // Draw buses
+  const R = sysKey === 'ieee30' ? 13 : 16;
+  for (let i = 1; i <= sys.n; i++) {
+    const x = tx(i), y = ty(i);
+    ctx.beginPath();
+    ctx.arc(x, y, R, 0, Math.PI*2);
+
+    if (pmuSet.has(i)) {
+      ctx.fillStyle = '#e74c3c';
+      ctx.fill();
+      ctx.strokeStyle = '#ff6b6b';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    } else if (obs[i] > 0) {
+      ctx.fillStyle = '#27ae60';
+      ctx.fill();
+      ctx.strokeStyle = '#2ecc71';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = '#555';
+      ctx.fill();
+      ctx.strokeStyle = '#777';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // ZIB ring
+    if (zibSet.has(i)) {
+      ctx.beginPath();
+      ctx.arc(x, y, R+4, 0, Math.PI*2);
+      ctx.strokeStyle = '#f39c12';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Bus number
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${sysKey==='ieee30'?'9':'11'}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i, x, y);
+
+    // Obs count for n1pmu mode
+    if (consKey === 'n1pmu' && obs[i] > 0) {
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillStyle = obs[i] >= 2 ? '#2ecc71' : '#e74c3c';
+      ctx.fillText('×'+obs[i], x + R + 8, y);
+    }
+  }
+
+  // Update results
+  const obsBuses = Object.values(obs).filter(v => v > 0).length;
+  const totalObs = sys.n;
+  document.getElementById('res-pmu').textContent = pmuBuses.length;
+  document.getElementById('res-obs').textContent = obsBuses;
+  document.getElementById('res-total').textContent = totalObs;
+
+  const constraintNames = {
+    complete: 'Complete Observability（基本）',
+    zib: 'With ZIB（ZIバス考慮）',
+    n1pmu: 'N-1 PMU Loss（各バス2重観測）'
+  };
+  document.getElementById('res-constraint').textContent = constraintNames[consKey];
+
+  const methodTags = {
+    complete: '<span class="tag tag-conv">ILP</span><span class="tag tag-meta">GA</span><span class="tag tag-meta">PSO</span>',
+    zib: '<span class="tag tag-conv">BILP</span><span class="tag tag-hybrid">ILP+Graph</span>',
+    n1pmu: '<span class="tag tag-conv">ILP</span><span class="tag tag-meta">PSO</span><span class="tag tag-hybrid">ILP+GA</span>'
+  };
+  document.getElementById('res-methods').innerHTML = methodTags[consKey];
+
+  // Update method table
+  updateMethodTable(consKey);
+}
+
+function updateMethodTable(consKey) {
+  const tbody = document.querySelector('#method-table tbody');
+  const highlight = {
+    complete: 'Complete Observability',
+    zib: 'With ZIB',
+    n1pmu: 'N-1 PMU Loss'
+  }[consKey];
+
+  tbody.innerHTML = METHOD_DATA.map(row => {
+    const active = row.constraint === highlight;
+    const bg = active ? 'background:rgba(233,69,96,0.15);' : '';
+    return `<tr style="${bg}">
+      <td>${active?'<strong>':''}${row.constraint}${active?'</strong>':''}</td>
+      <td><span class="tag ${row.tag}">${row.cat}</span></td>
+      <td style="font-size:0.8rem;">${row.refs}</td>
+      <td>${row.ieee14}</td>
+    </tr>`;
+  }).join('');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.tab-btn')[name==='explain'?0:1].classList.add('active');
+  if (name === 'demo') draw();
+}
+
+function onSystemChange() { draw(); }
+function onConstraintChange() { draw(); }
+function runPlacement() { draw(); }
+
+// Init
+window.addEventListener('load', () => {
+  // Pre-compute IEEE30 layout
+  if (!SYSTEMS.ieee30.pos) SYSTEMS.ieee30.pos = computeForceLayout(SYSTEMS.ieee30);
+});
+</script>
+</body>
+</html>

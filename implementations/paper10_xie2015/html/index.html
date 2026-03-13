@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper 10: Xie et al. 2015 - Graph Theory PMU Placement</title>
+<style>
+:root {
+  --pmu-red: #e74c3c;
+  --obs-green: #27ae60;
+  --unobs-gray: #95a5a6;
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --card: #0f3460;
+  --text: #e8e8e8;
+  --accent: #e94560;
+  --border: #2a3a5c;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.back-link {
+  display: inline-block;
+  padding: 12px 20px;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 14px;
+  transition: opacity 0.2s;
+}
+.back-link:hover { opacity: 0.7; }
+
+header {
+  text-align: center;
+  padding: 10px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+header h1 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+header .subtitle {
+  font-size: 13px;
+  color: #aaa;
+}
+header .subtitle a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 20px 0;
+}
+.tab-btn {
+  padding: 10px 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+.tab-btn.active {
+  background: var(--card);
+  color: var(--text);
+  border-color: var(--accent);
+  border-bottom: 1px solid var(--card);
+}
+
+.tab-content {
+  display: none;
+  padding: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.tab-content.active { display: block; }
+
+/* === Explanation Tab === */
+.explanation-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.explanation-section h2 {
+  font-size: 18px;
+  color: var(--accent);
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+.explanation-section h3 {
+  font-size: 15px;
+  color: #ccc;
+  margin: 14px 0 8px;
+}
+.explanation-section p, .explanation-section li {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #ccc;
+}
+.explanation-section ul {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+.explanation-section code {
+  background: var(--card);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #f0c040;
+}
+
+.math-block {
+  background: var(--card);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 12px 0;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: #ddd;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.comparison-table th, .comparison-table td {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.comparison-table th {
+  background: var(--card);
+  color: var(--accent);
+  font-weight: 600;
+}
+.comparison-table td {
+  background: var(--surface);
+  color: #ccc;
+}
+.comparison-table tr:hover td {
+  background: #1a2a4a;
+}
+
+.highlight-box {
+  background: rgba(233, 69, 96, 0.1);
+  border-left: 3px solid var(--accent);
+  padding: 12px 16px;
+  margin: 12px 0;
+  border-radius: 0 6px 6px 0;
+  font-size: 14px;
+  color: #ccc;
+}
+
+/* === Demo Tab === */
+.controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.controls-bar label {
+  font-size: 13px;
+  color: #aaa;
+  margin-right: 4px;
+}
+.controls-bar select, .controls-bar button {
+  padding: 7px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.controls-bar select:hover, .controls-bar button:hover {
+  border-color: var(--accent);
+}
+
+.method-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.method-toggle button {
+  border: none;
+  border-radius: 0;
+  padding: 7px 16px;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+.method-toggle button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.demo-layout {
+  display: flex;
+  gap: 16px;
+}
+
+.canvas-container {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  position: relative;
+}
+canvas {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.stats-panel {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.stat-card h3 {
+  font-size: 13px;
+  color: #aaa;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 4px 0;
+}
+.stat-row .val { color: var(--accent); font-weight: 600; }
+
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #aaa;
+}
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.pmu-list {
+  font-size: 12px;
+  color: #ccc;
+  line-height: 1.8;
+  word-break: break-all;
+}
+
+.q-matrix-display {
+  background: var(--card);
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #aaa;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre;
+  line-height: 1.4;
+}
+
+.obs-bar {
+  height: 8px;
+  background: var(--card);
+  border-radius: 4px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.obs-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+@media (max-width: 800px) {
+  .demo-layout { flex-direction: column; }
+  .stats-panel { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<a href="../../../" class="back-link">&larr; 論文一覧</a>
+
+<header>
+  <h1>Paper 10: Graph Theory based PMU Placement and Multiarea SE</h1>
+  <div class="subtitle">
+    Xie, Bie, Lin (2015) &mdash; Electric Power Systems Research
+    &nbsp;|&nbsp;
+    <a href="https://doi.org/10.1016/j.epsr.2014.08.023" target="_blank">DOI: 10.1016/j.epsr.2014.08.023</a>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('explain')">解説</button>
+  <button class="tab-btn" onclick="switchTab('demo')">デモ</button>
+</div>
+
+<!-- ==================== Explanation Tab ==================== -->
+<div id="tab-explain" class="tab-content active">
+
+  <div class="explanation-section">
+    <h2>1. 概要</h2>
+    <p>
+      本論文はグラフ理論に基づくPMU配置手法を提案している。従来のBILP（二値整数線形計画法）とは異なり、
+      電力系統の接続行列から導出される<code>Q = A<sup>T</sup>A</code>行列を用いた貪欲（グリーディ）アルゴリズムにより、
+      PMU配置を決定する。また、大規模系統への適用を目的としたマルチエリア分解の概念も提示している。
+    </p>
+    <div class="highlight-box">
+      BILPが最小PMU数の最適解を求めるのに対し、Xie手法はグラフ構造の特性を活用した
+      ヒューリスティック解を求める。結果としてPMU数はBILPより多くなる場合があるが、
+      計算が高速で大規模系統にスケーラブルという利点がある。
+    </div>
+  </div>
+
+  <div class="explanation-section">
+    <h2>2. Q行列とグラフ理論的アプローチ</h2>
+    <h3>枝-ノード接続行列 A</h3>
+    <p>
+      電力系統のトポロジーを枝-ノード接続行列（branch-to-node incidence matrix）<code>A</code>で表現する。
+      各行が枝（送電線）、各列がノード（母線）に対応し、枝の始点に+1、終点に-1を記入する。
+    </p>
+    <div class="math-block">
+A[k,i] = +1  (枝kの始点がノードi)<br>
+A[k,j] = -1  (枝kの終点がノードj)<br>
+A[k,m] =  0  (枝kがノードmに接続していない)
+    </div>
+
+    <h3>Q行列の構成</h3>
+    <p>
+      Q行列は接続行列の転置と自身の積として定義される：
+    </p>
+    <div class="math-block">
+Q = A<sup>T</sup> &times; A
+    </div>
+    <p>
+      この行列の性質：
+    </p>
+    <ul>
+      <li><code>Q[i,i]</code>（対角要素）= ノードiに接続する枝の数（次数）</li>
+      <li><code>Q[i,j]</code>（非対角要素）= ノードiとjを結ぶ枝の数の負値（接続があれば-1）</li>
+      <li>Q行列はグラフラプラシアン行列と一致する</li>
+    </ul>
+  </div>
+
+  <div class="explanation-section">
+    <h2>3. グリーディアルゴリズム</h2>
+    <p>アルゴリズムの手順：</p>
+    <ul>
+      <li><strong>Step 1:</strong> Q行列を計算し、各ノードの次数（対角要素）を取得</li>
+      <li><strong>Step 2:</strong> 未観測ノードの中で最大次数のノードを選択し、PMUを配置</li>
+      <li><strong>Step 3:</strong> PMUを配置したノードとその隣接ノードを「観測済み」に更新</li>
+      <li><strong>Step 4:</strong> 全ノードが観測済みになるまでStep 2-3を繰り返す</li>
+    </ul>
+    <div class="highlight-box">
+      このアルゴリズムはゼロ注入バス（ZIB）の情報を利用しない。
+      ZIBを考慮すればPMU数を削減できるが、本手法はトポロジー情報のみに基づく純粋なグラフ理論的手法である。
+    </div>
+  </div>
+
+  <div class="explanation-section">
+    <h2>4. マルチエリア状態推定</h2>
+    <p>
+      大規模系統をグラフ分割（graph partitioning）により複数のサブエリアに分解し、
+      各エリアで独立にPMU配置と状態推定を行う。エリア間の境界バスは重複して扱い、
+      結合条件で全体の整合性を保つ。これにより、計算量の大幅な削減が可能となる。
+    </p>
+  </div>
+
+  <div class="explanation-section">
+    <h2>5. 結果比較：BILP vs Xieグラフ理論法</h2>
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>テストシステム</th>
+          <th>バス数</th>
+          <th>BILP最適解<br>(PMU数)</th>
+          <th>BILP配置</th>
+          <th>Xie手法<br>(PMU数)</th>
+          <th>Xie配置</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>IEEE 14-Bus</td>
+          <td>14</td>
+          <td>4</td>
+          <td>{2, 6, 7, 9}</td>
+          <td>6</td>
+          <td>{1, 4, 6, 8, 10, 14}</td>
+        </tr>
+        <tr>
+          <td>IEEE 30-Bus</td>
+          <td>30</td>
+          <td>10</td>
+          <td>{1, 5, 10, 11, 12, 15, 18, 24, 27, 29}</td>
+          <td>10</td>
+          <td>{2, 3, 6, 10, 11, 12, 15, 19, 25, 27}</td>
+        </tr>
+        <tr>
+          <td>IEEE 118-Bus</td>
+          <td>118</td>
+          <td>32</td>
+          <td>&mdash;</td>
+          <td>35</td>
+          <td>&mdash;</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="highlight-box">
+      IEEE 14-Busでは BILP: 4台 vs Xie: 6台と差があるが、
+      IEEE 30-Busでは同数（10台）ながら配置が異なる。
+      Xie手法は最適性を保証しないが、高次数ノードを優先するため冗長性が高く、
+      PMU故障時の堅牢性に利点がある場合がある。
+    </div>
+  </div>
+
+</div>
+
+<!-- ==================== Demo Tab ==================== -->
+<div id="tab-demo" class="tab-content">
+
+  <div class="controls-bar">
+    <label>系統選択:</label>
+    <select id="systemSelect" onchange="changeSystem()">
+      <option value="ieee14">IEEE 14-Bus</option>
+      <option value="ieee30">IEEE 30-Bus</option>
+    </select>
+
+    <div class="method-toggle">
+      <button id="btn-bilp" class="active" onclick="setMethod('bilp')">BILP最適解</button>
+      <button id="btn-xie" onclick="setMethod('xie')">Xieグラフ理論法</button>
+    </div>
+
+    <button onclick="resetToMethod()">リセット</button>
+    <button onclick="runGreedyAnimation()">グリーディ実行</button>
+  </div>
+
+  <div class="demo-layout">
+    <div class="canvas-container">
+      <canvas id="networkCanvas" width="700" height="500"></canvas>
+      <div class="legend" style="padding: 8px 4px 0;">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--pmu-red)"></div>PMU配置バス</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--obs-green)"></div>観測済みバス</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--unobs-gray)"></div>未観測バス</div>
+      </div>
+    </div>
+
+    <div class="stats-panel">
+      <div class="stat-card">
+        <h3>配置統計</h3>
+        <div class="stat-row"><span>PMU数</span><span class="val" id="stat-pmu">0</span></div>
+        <div class="stat-row"><span>観測バス数</span><span class="val" id="stat-obs">0</span></div>
+        <div class="stat-row"><span>全バス数</span><span class="val" id="stat-total">14</span></div>
+        <div class="stat-row"><span>観測率</span><span class="val" id="stat-rate">0%</span></div>
+        <div class="obs-bar"><div class="obs-bar-fill" id="obs-bar-fill" style="width:0%; background: var(--obs-green);"></div></div>
+      </div>
+
+      <div class="stat-card">
+        <h3>現在の手法</h3>
+        <div id="method-label" style="font-size:14px; color:var(--accent); margin-bottom:6px;">BILP最適解</div>
+        <div class="pmu-list" id="pmu-list">PMU配置: なし</div>
+      </div>
+
+      <div class="stat-card">
+        <h3>Q行列（対角要素 = 次数）</h3>
+        <div class="q-matrix-display" id="q-matrix-display"></div>
+      </div>
+
+      <div class="stat-card">
+        <h3>操作方法</h3>
+        <p style="font-size:12px; color:#aaa; line-height:1.7;">
+          バスをクリックでPMU配置/解除を切替。<br>
+          「グリーディ実行」で最大次数ノードから順にPMUを配置するアニメーションを表示。
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Data
+// ============================================================
+const IEEE14 = {
+  buses: 14,
+  branches: [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],[6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]],
+  positions: {1:[80,350],2:[200,400],3:[350,400],4:[350,280],5:[200,280],6:[80,180],7:[250,200],8:[250,120],9:[400,180],10:[480,180],11:[150,100],12:[80,60],13:[200,60],14:[400,80]},
+  bilp: [2,6,7,9],
+  xie: [1,4,6,8,10,14]
+};
+
+const IEEE30 = {
+  buses: 30,
+  branches: [[1,2],[1,3],[2,4],[2,5],[2,6],[3,4],[4,6],[4,12],[5,7],[6,7],[6,8],[6,9],[6,10],[6,28],[8,28],[9,10],[9,11],[10,17],[10,20],[10,21],[10,22],[12,13],[12,14],[12,15],[12,16],[14,15],[15,18],[15,23],[16,17],[18,19],[19,20],[21,22],[22,24],[23,24],[24,25],[25,26],[25,27],[27,28],[27,29],[27,30],[29,30]],
+  positions: null, // will be computed
+  bilp: [1,5,10,11,12,15,18,24,27,29],
+  xie: [2,3,6,10,11,12,15,19,25,27]
+};
+
+// ============================================================
+// State
+// ============================================================
+let currentSystem = 'ieee14';
+let currentMethod = 'bilp';
+let pmuBuses = new Set();
+let systemData = null;
+let positions = {};
+let animating = false;
+
+// ============================================================
+// Force-directed layout for IEEE 30
+// ============================================================
+function forceLayout(buses, branches, width, height) {
+  const margin = 50;
+  const w = width - 2 * margin;
+  const h = height - 2 * margin;
+  // Initialize positions randomly
+  const pos = {};
+  const rng = (seed) => {
+    let s = seed;
+    return () => { s = (s * 16807 + 0) % 2147483647; return s / 2147483647; };
+  };
+  const rand = rng(42);
+  for (let i = 1; i <= buses; i++) {
+    pos[i] = [margin + rand() * w, margin + rand() * h];
+  }
+
+  // Build adjacency
+  const adj = {};
+  for (let i = 1; i <= buses; i++) adj[i] = [];
+  branches.forEach(([a, b]) => { adj[a].push(b); adj[b].push(a); });
+
+  const iterations = 300;
+  const k = Math.sqrt((w * h) / buses) * 0.8;
+  const cool = 0.97;
+  let temp = w / 4;
+
+  for (let iter = 0; iter < iterations; iter++) {
+    const disp = {};
+    for (let i = 1; i <= buses; i++) disp[i] = [0, 0];
+
+    // Repulsive forces
+    for (let i = 1; i <= buses; i++) {
+      for (let j = i + 1; j <= buses; j++) {
+        let dx = pos[i][0] - pos[j][0];
+        let dy = pos[i][1] - pos[j][1];
+        let dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+        let force = (k * k) / dist;
+        let fx = (dx / dist) * force;
+        let fy = (dy / dist) * force;
+        disp[i][0] += fx; disp[i][1] += fy;
+        disp[j][0] -= fx; disp[j][1] -= fy;
+      }
+    }
+
+    // Attractive forces
+    branches.forEach(([a, b]) => {
+      let dx = pos[a][0] - pos[b][0];
+      let dy = pos[a][1] - pos[b][1];
+      let dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+      let force = (dist * dist) / k;
+      let fx = (dx / dist) * force;
+      let fy = (dy / dist) * force;
+      disp[a][0] -= fx; disp[a][1] -= fy;
+      disp[b][0] += fx; disp[b][1] += fy;
+    });
+
+    // Apply
+    for (let i = 1; i <= buses; i++) {
+      let dx = disp[i][0];
+      let dy = disp[i][1];
+      let dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+      let scale = Math.min(dist, temp) / dist;
+      pos[i][0] += dx * scale;
+      pos[i][1] += dy * scale;
+      pos[i][0] = Math.max(margin, Math.min(width - margin, pos[i][0]));
+      pos[i][1] = Math.max(margin, Math.min(height - margin, pos[i][1]));
+    }
+    temp *= cool;
+  }
+
+  // Round
+  for (let i = 1; i <= buses; i++) {
+    pos[i] = [Math.round(pos[i][0]), Math.round(pos[i][1])];
+  }
+  return pos;
+}
+
+// ============================================================
+// Q matrix computation
+// ============================================================
+function computeQ(buses, branches) {
+  const Q = [];
+  for (let i = 0; i < buses; i++) {
+    Q[i] = new Array(buses).fill(0);
+  }
+  branches.forEach(([a, b]) => {
+    const i = a - 1, j = b - 1;
+    Q[i][i] += 1;
+    Q[j][j] += 1;
+    Q[i][j] -= 1;
+    Q[j][i] -= 1;
+  });
+  return Q;
+}
+
+function getAdjacency(buses, branches) {
+  const adj = {};
+  for (let i = 1; i <= buses; i++) adj[i] = new Set();
+  branches.forEach(([a, b]) => { adj[a].add(b); adj[b].add(a); });
+  return adj;
+}
+
+function getObservedBuses(pmus, adj) {
+  const obs = new Set();
+  pmus.forEach(b => {
+    obs.add(b);
+    adj[b].forEach(n => obs.add(n));
+  });
+  return obs;
+}
+
+// ============================================================
+// Display Q matrix
+// ============================================================
+function displayQMatrix() {
+  const data = currentSystem === 'ieee14' ? IEEE14 : IEEE30;
+  const Q = computeQ(data.buses, data.branches);
+  const el = document.getElementById('q-matrix-display');
+  if (data.buses <= 14) {
+    // Full diagonal display
+    let lines = [];
+    lines.push('Bus  Degree  Adjacent');
+    lines.push('---  ------  --------');
+    for (let i = 0; i < data.buses; i++) {
+      const neighbors = [];
+      for (let j = 0; j < data.buses; j++) {
+        if (j !== i && Q[i][j] !== 0) neighbors.push(j + 1);
+      }
+      lines.push(`${String(i+1).padStart(3)}  ${String(Q[i][i]).padStart(6)}  {${neighbors.join(',')}}`);
+    }
+    el.textContent = lines.join('\n');
+  } else {
+    // Summary for larger systems
+    let lines = [];
+    lines.push('Bus  Degree  Adjacent');
+    lines.push('---  ------  --------');
+    for (let i = 0; i < data.buses; i++) {
+      const neighbors = [];
+      for (let j = 0; j < data.buses; j++) {
+        if (j !== i && Q[i][j] !== 0) neighbors.push(j + 1);
+      }
+      lines.push(`${String(i+1).padStart(3)}  ${String(Q[i][i]).padStart(6)}  {${neighbors.join(',')}}`);
+    }
+    el.textContent = lines.join('\n');
+  }
+}
+
+// ============================================================
+// Drawing
+// ============================================================
+function draw() {
+  const canvas = document.getElementById('networkCanvas');
+  const ctx = canvas.getContext('2d');
+  const data = currentSystem === 'ieee14' ? IEEE14 : IEEE30;
+  const adj = getAdjacency(data.buses, data.branches);
+  const obs = getObservedBuses(pmuBuses, adj);
+
+  // Scale positions to canvas
+  const cw = canvas.width, ch = canvas.height;
+  const pos = positions;
+
+  ctx.clearRect(0, 0, cw, ch);
+
+  // Draw branches
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#2a3a5c';
+  data.branches.forEach(([a, b]) => {
+    const pa = pos[a], pb = pos[b];
+    if (!pa || !pb) return;
+    ctx.beginPath();
+    ctx.moveTo(pa[0], pa[1]);
+    ctx.lineTo(pb[0], pb[1]);
+    ctx.stroke();
+  });
+
+  // Draw buses
+  const busRadius = data.buses <= 14 ? 18 : 14;
+  const fontSize = data.buses <= 14 ? 12 : 10;
+
+  for (let i = 1; i <= data.buses; i++) {
+    const p = pos[i];
+    if (!p) continue;
+    const isPMU = pmuBuses.has(i);
+    const isObs = obs.has(i);
+
+    // Glow for PMU
+    if (isPMU) {
+      const grad = ctx.createRadialGradient(p[0], p[1], busRadius, p[0], p[1], busRadius * 2.5);
+      grad.addColorStop(0, 'rgba(231,76,60,0.3)');
+      grad.addColorStop(1, 'rgba(231,76,60,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], busRadius * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Bus circle
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], busRadius, 0, Math.PI * 2);
+    if (isPMU) {
+      ctx.fillStyle = '#e74c3c';
+    } else if (isObs) {
+      ctx.fillStyle = '#27ae60';
+    } else {
+      ctx.fillStyle = '#95a5a6';
+    }
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Bus label
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i, p[0], p[1]);
+  }
+
+  updateStats(data, adj, obs);
+}
+
+function updateStats(data, adj, obs) {
+  const pmuCount = pmuBuses.size;
+  const obsCount = obs.size;
+  const total = data.buses;
+  const rate = total > 0 ? Math.round((obsCount / total) * 100) : 0;
+
+  document.getElementById('stat-pmu').textContent = pmuCount;
+  document.getElementById('stat-obs').textContent = obsCount;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-rate').textContent = rate + '%';
+  document.getElementById('obs-bar-fill').style.width = rate + '%';
+  document.getElementById('obs-bar-fill').style.background = rate === 100 ? 'var(--obs-green)' : 'var(--accent)';
+
+  const sorted = [...pmuBuses].sort((a, b) => a - b);
+  document.getElementById('pmu-list').textContent =
+    pmuCount > 0 ? `PMU配置: {${sorted.join(', ')}}` : 'PMU配置: なし';
+}
+
+// ============================================================
+// Interaction
+// ============================================================
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (tab === 'explain' && i === 0) || (tab === 'demo' && i === 1));
+  });
+  document.getElementById('tab-explain').classList.toggle('active', tab === 'explain');
+  document.getElementById('tab-demo').classList.toggle('active', tab === 'demo');
+  if (tab === 'demo') draw();
+}
+
+function changeSystem() {
+  currentSystem = document.getElementById('systemSelect').value;
+  initPositions();
+  resetToMethod();
+  displayQMatrix();
+}
+
+function setMethod(method) {
+  currentMethod = method;
+  document.getElementById('btn-bilp').classList.toggle('active', method === 'bilp');
+  document.getElementById('btn-xie').classList.toggle('active', method === 'xie');
+  document.getElementById('method-label').textContent = method === 'bilp' ? 'BILP最適解' : 'Xieグラフ理論法';
+  resetToMethod();
+}
+
+function resetToMethod() {
+  const data = currentSystem === 'ieee14' ? IEEE14 : IEEE30;
+  const arr = currentMethod === 'bilp' ? data.bilp : data.xie;
+  pmuBuses = new Set(arr);
+  draw();
+}
+
+function initPositions() {
+  if (currentSystem === 'ieee14') {
+    positions = { ...IEEE14.positions };
+  } else {
+    const canvas = document.getElementById('networkCanvas');
+    positions = forceLayout(IEEE30.buses, IEEE30.branches, canvas.width, canvas.height);
+  }
+}
+
+// Canvas click -> toggle PMU
+document.getElementById('networkCanvas').addEventListener('click', function(e) {
+  if (animating) return;
+  const rect = this.getBoundingClientRect();
+  const scaleX = this.width / rect.width;
+  const scaleY = this.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleY;
+
+  const data = currentSystem === 'ieee14' ? IEEE14 : IEEE30;
+  const radius = data.buses <= 14 ? 18 : 14;
+
+  for (let i = 1; i <= data.buses; i++) {
+    const p = positions[i];
+    if (!p) continue;
+    const dx = mx - p[0], dy = my - p[1];
+    if (dx * dx + dy * dy <= (radius + 6) * (radius + 6)) {
+      if (pmuBuses.has(i)) pmuBuses.delete(i);
+      else pmuBuses.add(i);
+      draw();
+      return;
+    }
+  }
+});
+
+// ============================================================
+// Greedy animation
+// ============================================================
+async function runGreedyAnimation() {
+  if (animating) return;
+  animating = true;
+  pmuBuses = new Set();
+  draw();
+
+  const data = currentSystem === 'ieee14' ? IEEE14 : IEEE30;
+  const adj = getAdjacency(data.buses, data.branches);
+  const Q = computeQ(data.buses, data.branches);
+  const observed = new Set();
+
+  await sleep(400);
+
+  while (observed.size < data.buses) {
+    // Find unobserved bus with max degree
+    let bestBus = -1, bestDeg = -1;
+    for (let i = 1; i <= data.buses; i++) {
+      if (observed.has(i)) continue;
+      // Count unobserved neighbors + self
+      let contribution = observed.has(i) ? 0 : 1;
+      adj[i].forEach(n => { if (!observed.has(n)) contribution++; });
+      const deg = Q[i - 1][i - 1]; // use degree as tiebreaker
+      if (contribution > bestDeg || (contribution === bestDeg && deg > Q[bestBus - 1][bestBus - 1])) {
+        bestDeg = contribution;
+        bestBus = i;
+      }
+    }
+    if (bestBus === -1) break;
+
+    pmuBuses.add(bestBus);
+    observed.add(bestBus);
+    adj[bestBus].forEach(n => observed.add(n));
+    draw();
+    await sleep(600);
+  }
+
+  animating = false;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ============================================================
+// Init
+// ============================================================
+initPositions();
+resetToMethod();
+displayQMatrix();
+</script>
+
+</body>
+</html>

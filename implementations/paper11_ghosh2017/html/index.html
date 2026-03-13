@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper 11: Graph Theory &amp; AHP-MCDM - Ghosh et al. 2017</title>
+<style>
+  :root {
+    --pmu-red: #e74c3c;
+    --obs-green: #27ae60;
+    --unobs-gray: #95a5a6;
+    --zib-blue: #3498db;
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card: #0f3460;
+    --text: #e8e8e8;
+    --accent: #e94560;
+    --border: #2a3a5c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  a.back-link {
+    display: inline-block;
+    padding: 8px 16px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+    background: var(--surface);
+  }
+  a.back-link:hover { text-decoration: underline; }
+  header {
+    background: linear-gradient(135deg, var(--surface), var(--card));
+    padding: 24px 32px;
+    border-bottom: 2px solid var(--accent);
+  }
+  header h1 { font-size: 1.4rem; color: #fff; }
+  header p { font-size: 0.85rem; color: #aab; margin-top: 4px; }
+  header a { color: var(--accent); font-size: 0.8rem; }
+
+  .tab-bar {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 14px 28px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #889;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+  }
+  .tab-btn:hover { color: #ccc; }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .explanation {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px;
+    line-height: 1.8;
+  }
+  .explanation h2 { color: var(--accent); margin: 24px 0 12px; font-size: 1.2rem; }
+  .explanation h3 { color: #ccd; margin: 16px 0 8px; }
+  .explanation p, .explanation li { color: #bbc; margin-bottom: 8px; }
+  .explanation ul, .explanation ol { padding-left: 24px; }
+  .math-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    overflow-x: auto;
+    color: #dde;
+  }
+  .highlight-box {
+    background: rgba(233, 69, 96, 0.1);
+    border-left: 4px solid var(--accent);
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+  }
+  table.data-table th, table.data-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  table.data-table th { background: var(--card); color: var(--accent); }
+
+  .demo-container {
+    display: flex;
+    height: calc(100vh - 120px);
+  }
+  .demo-sidebar {
+    width: 360px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .demo-main {
+    flex: 1;
+    position: relative;
+  }
+  canvas#network {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .ctrl-group { margin-bottom: 16px; }
+  .ctrl-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: #889;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  select, button {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  select:hover, button:hover {
+    border-color: var(--accent);
+  }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  button.primary:hover { opacity: 0.85; }
+  button.secondary {
+    background: var(--surface);
+    border-color: var(--border);
+    margin-top: 6px;
+  }
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--zib-blue);
+    cursor: pointer;
+  }
+  .checkbox-group span {
+    font-size: 0.9rem;
+    color: var(--text);
+  }
+  .stats-panel {
+    margin-top: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .stats-panel h3 {
+    font-size: 0.85rem;
+    color: var(--accent);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { color: #889; }
+  .stat-value { font-weight: 600; }
+  .stat-value.good { color: var(--obs-green); }
+  .stat-value.bad { color: var(--pmu-red); }
+  .stat-value.neutral { color: var(--unobs-gray); }
+
+  .legend {
+    margin-top: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .legend h3 {
+    font-size: 0.85rem;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+    color: #aab;
+  }
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-dot.pmu { background: var(--pmu-red); }
+  .legend-dot.obs { background: var(--obs-green); }
+  .legend-dot.unobs { background: var(--unobs-gray); }
+  .legend-dot.zib {
+    background: var(--surface);
+    border: 3px solid var(--zib-blue);
+  }
+
+  .pmu-list {
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(233, 69, 96, 0.05);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    color: #aab;
+    min-height: 40px;
+  }
+  .pmu-list strong { color: var(--accent); }
+
+  .info-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .info-badge.optimal { background: rgba(39,174,96,0.2); color: var(--obs-green); }
+  .info-badge.suboptimal { background: rgba(231,76,60,0.2); color: var(--pmu-red); }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../../../">&larr; 論文一覧</a>
+
+<header>
+  <h1>Paper 11: Optimal PMU Placement &mdash; Graph Theory &amp; MCDM-based Approach</h1>
+  <p>Ghosh, Chatterjee &amp; Samanta (2017) &mdash; グラフ理論とAHP多基準意思決定法の融合</p>
+  <a href="https://doi.org/10.1049/iet-gtd.2017.0155" target="_blank">DOI: 10.1049/iet-gtd.2017.0155</a>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('explain')">解説</button>
+  <button class="tab-btn" onclick="switchTab('demo')">デモ</button>
+</div>
+
+<!-- ===================== 解説タブ ===================== -->
+<div id="tab-explain" class="tab-content active">
+  <div class="explanation">
+    <h2>1. 概要</h2>
+    <p>
+      Ghosh et al. (2017) は、電力系統の完全可観測性を実現するための最適PMU配置問題に対し、
+      <strong>グラフ理論</strong>と<strong>AHP (Analytic Hierarchy Process)</strong> に基づく
+      多基準意思決定法 (MCDM) を組み合わせたアプローチを提案しました。
+    </p>
+    <p>
+      従来の整数線形計画法 (ILP) ベースの手法と異なり、グラフのトポロジカル特性を活用して
+      候補バスを絞り込み、AHPによって複数の評価基準からバスをランキングすることで、
+      効率的かつ体系的にPMU配置を決定します。
+    </p>
+
+    <h2>2. グラフ理論による候補バスの選定</h2>
+    <p>電力系統をグラフとしてモデル化し、以下のステップで候補バスを絞り込みます：</p>
+    <ol>
+      <li><strong>接続行列 (Connectivity Matrix) の構築</strong>：各バスの隣接関係を行列で表現</li>
+      <li><strong>次数 (Degree) の計算</strong>：各バスに接続するブランチの数。次数の高いバスにPMUを設置すると多くのバスを観測可能</li>
+      <li><strong>支配集合 (Dominating Set) の構築</strong>：全バスをカバーする最小のバス集合を求める</li>
+      <li><strong>ZIB (Zero Injection Bus) の考慮</strong>：ZIBではKCLにより、隣接バスの電圧が既知なら残り1つも計算可能</li>
+    </ol>
+
+    <h2>3. AHP多基準意思決定法 (MCDM)</h2>
+    <p>
+      候補バスのランキングには、AHPを用いて以下の複数基準を総合的に評価します：
+    </p>
+    <ul>
+      <li><strong>次数 (Connectivity/Degree)</strong>：接続数が多いバスほど観測範囲が広い</li>
+      <li><strong>中心性 (Centrality)</strong>：ネットワーク内での位置的重要度</li>
+      <li><strong>冗長性 (Redundancy)</strong>：複数のPMUから観測されるバスの数</li>
+      <li><strong>ZIBとの関係</strong>：ZIBに隣接するバスはZIBの効果で追加の観測が期待できる</li>
+    </ul>
+
+    <div class="highlight-box">
+      <strong>AHPの手順：</strong><br>
+      1. 評価基準間のペアワイズ比較行列を作成<br>
+      2. 固有ベクトル法で各基準の重みを算出<br>
+      3. 各候補バスを基準ごとに評価<br>
+      4. 重み付き総合スコアで候補をランキング<br>
+      5. 上位から順にPMUを配置し、完全可観測性を達成するまで繰り返す
+    </div>
+
+    <h2>4. ZIB (Zero Injection Bus) の効果</h2>
+    <p>
+      Zero Injection Bus とは、発電機も負荷も接続されていないバスのことです。
+      KCL（キルヒホッフの電流則）により、ZIBに接続する全てのバスのうち1つを除いて
+      電圧が既知であれば、残りの1つの電圧も計算できます。
+    </p>
+    <div class="math-block">
+      ZIB効果の伝播ルール：<br>
+      ZIBの隣接バスのうち (n-1) 個が観測済み → 残り1個も観測可能<br>
+      この伝播を安定するまで繰り返し適用
+    </div>
+    <p>
+      ZIBを考慮することで、必要なPMU数を大幅に削減できます。
+      例えば、IEEE 14-busではZIBなしの4台からZIBありの3台に削減されます。
+    </p>
+
+    <h2>5. 結果比較 (Table 2)</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th rowspan="2">テストシステム</th>
+          <th rowspan="2">バス数</th>
+          <th colspan="2">ZIBなし</th>
+          <th colspan="2">ZIBあり</th>
+        </tr>
+        <tr>
+          <th>PMU数</th>
+          <th>配置バス</th>
+          <th>PMU数</th>
+          <th>配置バス</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>IEEE 14-Bus</td>
+          <td>14</td>
+          <td>4</td>
+          <td>{2, 6, 7, 9}</td>
+          <td>3</td>
+          <td>{2, 6, 9}</td>
+        </tr>
+        <tr>
+          <td>IEEE 30-Bus</td>
+          <td>30</td>
+          <td>10</td>
+          <td>{2, 4, 6, 9, 10, 12, 15, 19, 25, 27}</td>
+          <td>7</td>
+          <td>{2, 4, 10, 12, 15, 19, 27}</td>
+        </tr>
+        <tr>
+          <td>NE 39-Bus</td>
+          <td>39</td>
+          <td>13</td>
+          <td>&mdash;</td>
+          <td>8</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td>IEEE 57-Bus</td>
+          <td>57</td>
+          <td>17</td>
+          <td>&mdash;</td>
+          <td>11</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td>IEEE 118-Bus</td>
+          <td>118</td>
+          <td>32</td>
+          <td>&mdash;</td>
+          <td>28</td>
+          <td>&mdash;</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>6. 手法の特長</h2>
+    <ul>
+      <li><strong>計算効率</strong>：グラフ理論で候補を絞り込むため、大規模系統でも効率的に解を得られる</li>
+      <li><strong>多基準評価</strong>：単一指標ではなく複数の基準を総合的に考慮するため、ロバストな配置が得られる</li>
+      <li><strong>柔軟性</strong>：AHPの基準や重みを変更することで、異なる運用条件に対応可能</li>
+      <li><strong>ZIB効果の活用</strong>：KCL伝播を体系的に適用し、PMU数を効果的に削減</li>
+    </ul>
+
+    <h2>7. 他手法との比較</h2>
+    <p>
+      本手法の結果は、ILPベースの最適解と同等の結果を達成しており、
+      特にZIB考慮時の削減効果が顕著です。IEEE 57-busではZIBなし17台からZIBあり11台へ
+      35%以上の削減を達成しています。
+    </p>
+  </div>
+</div>
+
+<!-- ===================== デモタブ ===================== -->
+<div id="tab-demo" class="tab-content">
+  <div class="demo-container">
+    <div class="demo-sidebar">
+      <div class="ctrl-group">
+        <label>テストシステム</label>
+        <select id="systemSelect" onchange="changeSystem()">
+          <option value="ieee14">IEEE 14-Bus</option>
+          <option value="ieee30">IEEE 30-Bus</option>
+        </select>
+      </div>
+
+      <div class="checkbox-group" onclick="document.getElementById('zibToggle').click()">
+        <input type="checkbox" id="zibToggle" onclick="event.stopPropagation(); toggleZIB()">
+        <span>Zero Injection Bus 考慮</span>
+      </div>
+
+      <div class="ctrl-group">
+        <button class="primary" onclick="solveOptimal()">最適配置を実行</button>
+        <button class="secondary" onclick="clearAll()">クリア</button>
+      </div>
+
+      <div class="pmu-list" id="pmuList">
+        <strong>PMU配置バス：</strong> なし
+      </div>
+
+      <div class="stats-panel">
+        <h3>統計情報</h3>
+        <div class="stat-row">
+          <span class="stat-label">PMU数</span>
+          <span class="stat-value" id="statPmuCount">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">観測済みバス</span>
+          <span class="stat-value" id="statObserved">0 / 0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">可観測率</span>
+          <span class="stat-value" id="statPercent">0%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">完全可観測</span>
+          <span class="stat-value" id="statComplete">---</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">論文最適値</span>
+          <span class="stat-value neutral" id="statOptimal">---</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">判定</span>
+          <span id="statBadge"></span>
+        </div>
+      </div>
+
+      <div class="legend">
+        <h3>凡例</h3>
+        <div class="legend-item"><div class="legend-dot pmu"></div>PMU設置バス</div>
+        <div class="legend-item"><div class="legend-dot obs"></div>観測済みバス</div>
+        <div class="legend-item"><div class="legend-dot unobs"></div>未観測バス</div>
+        <div class="legend-item"><div class="legend-dot zib"></div>Zero Injection Bus</div>
+      </div>
+    </div>
+
+    <div class="demo-main">
+      <canvas id="network"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== Tab switching =====================
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (name === 'explain' && i === 0) || (name === 'demo' && i === 1));
+  });
+  document.getElementById('tab-explain').classList.toggle('active', name === 'explain');
+  document.getElementById('tab-demo').classList.toggle('active', name === 'demo');
+  if (name === 'demo') { resizeCanvas(); draw(); }
+}
+
+// ===================== System Data =====================
+const SYSTEMS = {
+  ieee14: {
+    name: 'IEEE 14-Bus',
+    n: 14,
+    branches: [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],[6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]],
+    positions: {1:[80,350],2:[200,400],3:[350,400],4:[350,280],5:[200,280],6:[80,180],7:[250,200],8:[250,120],9:[400,180],10:[480,180],11:[150,100],12:[80,60],13:[200,60],14:[400,80]},
+    zibs: [7],
+    optNoZIB: [2, 6, 7, 9],
+    optWithZIB: [2, 6, 9]
+  },
+  ieee30: {
+    name: 'IEEE 30-Bus',
+    n: 30,
+    branches: [[1,2],[1,3],[2,4],[2,5],[2,6],[3,4],[4,6],[4,12],[5,7],[6,7],[6,8],[6,9],[6,10],[6,28],[8,28],[9,10],[9,11],[10,17],[10,20],[10,21],[10,22],[12,13],[12,14],[12,15],[12,16],[14,15],[15,18],[15,23],[16,17],[18,19],[19,20],[21,22],[22,24],[23,24],[24,25],[25,26],[25,27],[27,28],[27,29],[27,30],[29,30]],
+    positions: null, // force-directed
+    zibs: [6, 9, 22, 25, 27, 28],
+    optNoZIB: [2, 4, 6, 9, 10, 12, 15, 19, 25, 27],
+    optWithZIB: [2, 4, 10, 12, 15, 19, 27]
+  }
+};
+
+let currentSystem = 'ieee14';
+let pmuBuses = new Set();
+let zibMode = false;
+let positions = {};
+let hoveredBus = null;
+
+// ===================== Canvas =====================
+const canvas = document.getElementById('network');
+const ctx = canvas.getContext('2d');
+let dpr = window.devicePixelRatio || 1;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+
+// ===================== Force-directed layout =====================
+function forceDirectedLayout(sys) {
+  const n = sys.n;
+  const W = canvas.width / dpr;
+  const H = canvas.height / dpr;
+  const pos = {};
+  // seed randomly
+  for (let i = 1; i <= n; i++) {
+    pos[i] = [W * 0.2 + Math.random() * W * 0.6, H * 0.15 + Math.random() * H * 0.7];
+  }
+  const adj = {};
+  for (let i = 1; i <= n; i++) adj[i] = [];
+  sys.branches.forEach(([a, b]) => { adj[a].push(b); adj[b].push(a); });
+
+  const k = Math.sqrt((W * H) / n) * 0.7;
+  const iterations = 300;
+
+  for (let iter = 0; iter < iterations; iter++) {
+    const disp = {};
+    for (let i = 1; i <= n; i++) disp[i] = [0, 0];
+    const temp = 0.1 * (1 - iter / iterations) * Math.max(W, H);
+
+    // repulsion
+    for (let i = 1; i <= n; i++) {
+      for (let j = i + 1; j <= n; j++) {
+        let dx = pos[i][0] - pos[j][0];
+        let dy = pos[i][1] - pos[j][1];
+        let dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+        let force = (k * k) / dist;
+        let fx = (dx / dist) * force;
+        let fy = (dy / dist) * force;
+        disp[i][0] += fx; disp[i][1] += fy;
+        disp[j][0] -= fx; disp[j][1] -= fy;
+      }
+    }
+    // attraction
+    sys.branches.forEach(([a, b]) => {
+      let dx = pos[a][0] - pos[b][0];
+      let dy = pos[a][1] - pos[b][1];
+      let dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+      let force = (dist * dist) / k;
+      let fx = (dx / dist) * force;
+      let fy = (dy / dist) * force;
+      disp[a][0] -= fx; disp[a][1] -= fy;
+      disp[b][0] += fx; disp[b][1] += fy;
+    });
+
+    for (let i = 1; i <= n; i++) {
+      let dl = Math.sqrt(disp[i][0] ** 2 + disp[i][1] ** 2) || 0.01;
+      let scale = Math.min(dl, temp) / dl;
+      pos[i][0] += disp[i][0] * scale;
+      pos[i][1] += disp[i][1] * scale;
+      pos[i][0] = Math.max(50, Math.min(W - 50, pos[i][0]));
+      pos[i][1] = Math.max(40, Math.min(H - 40, pos[i][1]));
+    }
+  }
+  return pos;
+}
+
+// ===================== Observability =====================
+function getAdjacency(sys) {
+  const adj = {};
+  for (let i = 1; i <= sys.n; i++) adj[i] = new Set();
+  sys.branches.forEach(([a, b]) => { adj[a].add(b); adj[b].add(a); });
+  return adj;
+}
+
+function checkObservability() {
+  const sys = SYSTEMS[currentSystem];
+  const adj = getAdjacency(sys);
+  const observed = new Set();
+
+  // Direct observation: PMU bus + its neighbors
+  pmuBuses.forEach(b => {
+    observed.add(b);
+    adj[b].forEach(nb => observed.add(nb));
+  });
+
+  // ZIB propagation
+  if (zibMode) {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      sys.zibs.forEach(zib => {
+        const neighbors = [...adj[zib]];
+        const allBuses = [zib, ...neighbors];
+        const unobserved = allBuses.filter(b => !observed.has(b));
+        if (unobserved.length === 1) {
+          observed.add(unobserved[0]);
+          changed = true;
+        }
+      });
+    }
+  }
+
+  return observed;
+}
+
+// ===================== Drawing =====================
+function draw() {
+  const sys = SYSTEMS[currentSystem];
+  const W = canvas.width / dpr;
+  const H = canvas.height / dpr;
+  ctx.clearRect(0, 0, W, H);
+
+  const observed = checkObservability();
+  const adj = getAdjacency(sys);
+
+  // Draw branches
+  sys.branches.forEach(([a, b]) => {
+    const pa = positions[a], pb = positions[b];
+    if (!pa || !pb) return;
+    ctx.beginPath();
+    ctx.moveTo(pa[0], pa[1]);
+    ctx.lineTo(pb[0], pb[1]);
+    const bothObs = observed.has(a) && observed.has(b);
+    ctx.strokeStyle = bothObs ? 'rgba(39,174,96,0.4)' : 'rgba(149,165,166,0.25)';
+    ctx.lineWidth = bothObs ? 2.5 : 1.5;
+    ctx.stroke();
+  });
+
+  // Draw nodes
+  for (let i = 1; i <= sys.n; i++) {
+    const p = positions[i];
+    if (!p) continue;
+    const isPMU = pmuBuses.has(i);
+    const isObs = observed.has(i);
+    const isZIB = zibMode && sys.zibs.includes(i);
+    const isHovered = hoveredBus === i;
+    const radius = isPMU ? 18 : 14;
+
+    // ZIB ring
+    if (isZIB) {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], radius + 5, 0, Math.PI * 2);
+      ctx.strokeStyle = 'var(--zib-blue)';
+      ctx.strokeStyle = '#3498db';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
+    // Hover ring
+    if (isHovered) {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], radius + 3, 0, Math.PI * 2);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Node fill
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], radius, 0, Math.PI * 2);
+    if (isPMU) {
+      ctx.fillStyle = '#e74c3c';
+    } else if (isObs) {
+      ctx.fillStyle = '#27ae60';
+    } else {
+      ctx.fillStyle = '#95a5a6';
+    }
+    ctx.fill();
+    ctx.strokeStyle = isPMU ? '#c0392b' : (isObs ? '#1e8449' : '#7f8c8d');
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px Segoe UI, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i, p[0], p[1]);
+  }
+
+  updateStats(observed);
+}
+
+// ===================== Stats =====================
+function updateStats(observed) {
+  const sys = SYSTEMS[currentSystem];
+  const pmuCount = pmuBuses.size;
+  const obsCount = observed.size;
+  const total = sys.n;
+  const pct = total > 0 ? Math.round((obsCount / total) * 100) : 0;
+  const complete = obsCount === total;
+  const opt = zibMode ? sys.optWithZIB : sys.optNoZIB;
+  const optCount = opt.length;
+
+  document.getElementById('statPmuCount').textContent = pmuCount;
+  document.getElementById('statObserved').textContent = `${obsCount} / ${total}`;
+  document.getElementById('statPercent').textContent = pct + '%';
+  document.getElementById('statPercent').className = 'stat-value ' + (pct === 100 ? 'good' : (pct >= 50 ? 'neutral' : 'bad'));
+
+  const completeEl = document.getElementById('statComplete');
+  completeEl.textContent = complete ? 'YES' : 'NO';
+  completeEl.className = 'stat-value ' + (complete ? 'good' : 'bad');
+
+  document.getElementById('statOptimal').textContent = `${optCount} 台 {${opt.join(', ')}}`;
+
+  const badgeEl = document.getElementById('statBadge');
+  if (!complete) {
+    badgeEl.innerHTML = '<span class="info-badge suboptimal">未完了</span>';
+  } else if (pmuCount <= optCount) {
+    badgeEl.innerHTML = '<span class="info-badge optimal">最適</span>';
+  } else {
+    badgeEl.innerHTML = '<span class="info-badge suboptimal">非最適 (+' + (pmuCount - optCount) + ')</span>';
+  }
+
+  // PMU list
+  const listEl = document.getElementById('pmuList');
+  if (pmuCount === 0) {
+    listEl.innerHTML = '<strong>PMU配置バス：</strong> なし';
+  } else {
+    const sorted = [...pmuBuses].sort((a, b) => a - b);
+    listEl.innerHTML = `<strong>PMU配置バス：</strong> {${sorted.join(', ')}}`;
+  }
+}
+
+// ===================== Interaction =====================
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const sys = SYSTEMS[currentSystem];
+  let found = null;
+  for (let i = 1; i <= sys.n; i++) {
+    const p = positions[i];
+    if (!p) continue;
+    const dx = mx - p[0], dy = my - p[1];
+    if (dx * dx + dy * dy < 400) { found = i; break; }
+  }
+  if (found !== hoveredBus) {
+    hoveredBus = found;
+    canvas.style.cursor = found ? 'pointer' : 'default';
+    draw();
+  }
+});
+
+canvas.addEventListener('click', (e) => {
+  if (hoveredBus !== null) {
+    if (pmuBuses.has(hoveredBus)) {
+      pmuBuses.delete(hoveredBus);
+    } else {
+      pmuBuses.add(hoveredBus);
+    }
+    draw();
+  }
+});
+
+// ===================== Controls =====================
+function changeSystem() {
+  currentSystem = document.getElementById('systemSelect').value;
+  pmuBuses.clear();
+  hoveredBus = null;
+  initPositions();
+  draw();
+}
+
+function toggleZIB() {
+  zibMode = document.getElementById('zibToggle').checked;
+  draw();
+}
+
+function solveOptimal() {
+  const sys = SYSTEMS[currentSystem];
+  const opt = zibMode ? sys.optWithZIB : sys.optNoZIB;
+  pmuBuses.clear();
+  opt.forEach(b => pmuBuses.add(b));
+  draw();
+}
+
+function clearAll() {
+  pmuBuses.clear();
+  draw();
+}
+
+function initPositions() {
+  const sys = SYSTEMS[currentSystem];
+  if (sys.positions) {
+    // Scale fixed positions to canvas
+    const W = canvas.width / dpr;
+    const H = canvas.height / dpr;
+    // Original positions designed for ~560x460 space
+    const srcW = 560, srcH = 460;
+    const scale = Math.min((W - 80) / srcW, (H - 80) / srcH);
+    const offX = (W - srcW * scale) / 2;
+    const offY = (H - srcH * scale) / 2;
+    positions = {};
+    for (const [bus, [x, y]] of Object.entries(sys.positions)) {
+      positions[parseInt(bus)] = [x * scale + offX, y * scale + offY];
+    }
+  } else {
+    positions = forceDirectedLayout(sys);
+  }
+}
+
+// ===================== Init =====================
+function init() {
+  resizeCanvas();
+  initPositions();
+  draw();
+}
+
+// Wait for DOM / tab switch
+setTimeout(init, 50);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper 14: Ahmed et al. 2022 — Critical Review of OPP Techniques</title>
+<style>
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --card: #0f3460;
+  --text: #e8e8e8;
+  --accent: #e94560;
+  --border: #2a3a5c;
+  --pmu-red: #e74c3c;
+  --obs-green: #27ae60;
+  --lp-color: #3498db;
+  --ga-color: #f39c12;
+  --pso-color: #9b59b6;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; min-height:100vh; }
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+.header { background:var(--surface); border-bottom:2px solid var(--border); padding:16px 24px; }
+.header .back { font-size:14px; margin-bottom:8px; display:inline-block; }
+.header h1 { font-size:20px; color:var(--accent); margin-bottom:4px; }
+.header .meta { font-size:13px; color:#aaa; }
+.header .review-badge { display:inline-block; background:var(--accent); color:#fff; font-size:11px; padding:2px 8px; border-radius:10px; margin-left:8px; font-weight:bold; }
+
+.note-box { background:var(--card); border-left:4px solid var(--accent); padding:12px 16px; margin:16px 24px; border-radius:4px; font-size:13px; line-height:1.6; color:#ccc; }
+
+.tabs { display:flex; gap:0; background:var(--surface); border-bottom:2px solid var(--border); padding:0 24px; }
+.tab-btn { padding:10px 24px; background:none; border:none; color:#888; font-size:14px; cursor:pointer; border-bottom:3px solid transparent; transition:all .2s; }
+.tab-btn:hover { color:var(--text); }
+.tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+.tab-content { display:none; padding:24px; }
+.tab-content.active { display:block; }
+
+.section-title { font-size:17px; color:var(--accent); margin:20px 0 12px 0; border-bottom:1px solid var(--border); padding-bottom:6px; }
+.section-title:first-child { margin-top:0; }
+
+table.data-table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
+table.data-table th { background:var(--card); color:var(--accent); padding:8px 12px; text-align:left; border:1px solid var(--border); }
+table.data-table td { padding:8px 12px; border:1px solid var(--border); background:var(--surface); }
+table.data-table tr:hover td { background:rgba(233,69,96,0.08); }
+
+.card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; margin:12px 0; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; }
+.card h3 { font-size:14px; color:var(--accent); margin-bottom:8px; }
+.card p, .card li { font-size:13px; color:#ccc; line-height:1.6; }
+.card ul { padding-left:18px; }
+
+/* Demo tab */
+.demo-controls { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:16px; }
+.demo-controls label { font-size:13px; color:#aaa; }
+.demo-controls select, .demo-controls button { background:var(--card); color:var(--text); border:1px solid var(--border); padding:6px 14px; border-radius:4px; font-size:13px; cursor:pointer; }
+.demo-controls select:hover, .demo-controls button:hover { border-color:var(--accent); }
+.method-btn { transition:all .2s; }
+.method-btn.active { border-color:var(--accent)!important; background:rgba(233,69,96,0.2)!important; }
+.method-btn.bilp { border-left:3px solid var(--lp-color); }
+.method-btn.ga { border-left:3px solid var(--ga-color); }
+.method-btn.pso { border-left:3px solid var(--pso-color); }
+
+.checkbox-label { display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; user-select:none; }
+.checkbox-label input { accent-color:var(--accent); width:16px; height:16px; }
+
+.dashboard { display:grid; grid-template-columns:1fr 340px; gap:16px; }
+@media(max-width:900px) { .dashboard { grid-template-columns:1fr; } }
+
+.network-container { background:var(--surface); border:1px solid var(--border); border-radius:8px; position:relative; overflow:hidden; }
+.network-container canvas { display:block; width:100%; }
+
+.side-panel { display:flex; flex-direction:column; gap:12px; }
+.info-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px; }
+.info-card h4 { font-size:13px; color:var(--accent); margin-bottom:8px; }
+.info-card .stat { display:flex; justify-content:space-between; padding:4px 0; font-size:13px; border-bottom:1px solid rgba(255,255,255,0.05); }
+.info-card .stat:last-child { border-bottom:none; }
+.info-card .stat .val { color:var(--accent); font-weight:bold; }
+
+.legend { display:flex; flex-wrap:wrap; gap:14px; margin:10px 0; font-size:12px; }
+.legend-item { display:flex; align-items:center; gap:5px; }
+.legend-dot { width:12px; height:12px; border-radius:50%; }
+
+.comparison-table-wrap { margin-top:12px; }
+.comparison-table-wrap table { width:100%; }
+
+.result-note { font-size:12px; color:#888; margin-top:8px; font-style:italic; }
+
+.pmu-list { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+.pmu-chip { background:var(--pmu-red); color:#fff; font-size:11px; padding:2px 8px; border-radius:10px; }
+.zib-chip { background:#2980b9; color:#fff; font-size:11px; padding:2px 8px; border-radius:10px; }
+
+.method-color-bar { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="../../../" class="back">&larr; 論文一覧</a>
+  <h1>Paper 14: Critical Review of State-of-the-Art Optimal PMU Placement Techniques
+    <span class="review-badge">REVIEW PAPER</span>
+  </h1>
+  <div class="meta">Ahmed et al. (2022) &mdash; Energies, 15(6), 2125 &mdash; <a href="https://doi.org/10.3390/en15062125" target="_blank">DOI: 10.3390/en15062125</a></div>
+</div>
+
+<div class="note-box">
+  本論文はレビュー論文であり、独自のアルゴリズムは提案していません。代わりに、LP/GA/PSO各手法カテゴリの比較結果をインタラクティブに表示しています。
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="explain">解説</button>
+  <button class="tab-btn" data-tab="demo">デモ</button>
+</div>
+
+<!-- ==================== 解説 TAB ==================== -->
+<div id="explain" class="tab-content active">
+
+  <h2 class="section-title">SCADA vs PMU 比較（Table 1）</h2>
+  <table class="data-table">
+    <thead><tr><th>特性</th><th>SCADA</th><th>PMU</th></tr></thead>
+    <tbody>
+      <tr><td>測定対象</td><td>電圧・電流の大きさ、有効/無効電力</td><td>電圧・電流のフェーザ（大きさ＋位相角）</td></tr>
+      <tr><td>測定レート</td><td>2〜4秒に1回</td><td>30〜120サンプル/秒（GPSベース）</td></tr>
+      <tr><td>同期精度</td><td>低い（非同期）</td><td>GPS同期（マイクロ秒精度）</td></tr>
+      <tr><td>状態推定</td><td>反復的（WLS等）</td><td>線形（直接計算可能）</td></tr>
+      <tr><td>可観測性</td><td>冗長測定で確保</td><td>最小PMU数で完全可観測性</td></tr>
+      <tr><td>通信</td><td>低速・低帯域</td><td>高速・広帯域（光ファイバ等）</td></tr>
+      <tr><td>コスト</td><td>低い（既存インフラ）</td><td>高い（PMU・通信・PDC）</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="section-title">LP（線形計画法）ベースの手法（Table 2）</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h3>BILP（二値整数線形計画法）</h3>
+      <ul>
+        <li>最も基本的なOPP定式化</li>
+        <li>決定変数: x<sub>i</sub> &isin; {0,1}（各バスにPMUを設置するか）</li>
+        <li>目的関数: min &Sigma; x<sub>i</sub></li>
+        <li>制約: Ax &ge; 1（全バス可観測）</li>
+        <li>グローバル最適解を保証</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>ILP 拡張手法</h3>
+      <ul>
+        <li>ZIB（零注入バス）の考慮による削減</li>
+        <li>N-1冗長性の制約追加</li>
+        <li>チャネル制限付きPMU</li>
+        <li>段階的設置計画</li>
+        <li>従来SCADA測定との統合</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>LP手法の特徴</h3>
+      <ul>
+        <li><strong>長所:</strong> 最適解保証、計算効率が高い</li>
+        <li><strong>短所:</strong> 複数最適解の列挙が困難</li>
+        <li>小〜中規模システムに最適</li>
+        <li>ソルバー: CPLEX, Gurobi, MATLAB intlinprog</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="section-title">GA（遺伝的アルゴリズム）ベースの手法（Table 3）</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h3>標準GA</h3>
+      <ul>
+        <li>染色体: バイナリ列（各ビット＝各バスのPMU有無）</li>
+        <li>適合度: PMU数 + ペナルティ（非可観測バス）</li>
+        <li>選択・交叉・突然変異で探索</li>
+        <li>複数最適解を自然に発見可能</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>GA変種</h3>
+      <ul>
+        <li>NSGA-II: 多目的最適化（コスト vs 冗長性）</li>
+        <li>BPSO-GA: PSOとのハイブリッド</li>
+        <li>免疫GA: 免疫系アルゴリズムとの融合</li>
+        <li>エリート保存戦略の改良</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>GA手法の特徴</h3>
+      <ul>
+        <li><strong>長所:</strong> 複数解発見、柔軟な制約処理</li>
+        <li><strong>短所:</strong> 最適解の保証なし、パラメータ調整</li>
+        <li>大規模システムにも適用可能</li>
+        <li>計算時間は問題サイズに依存</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="section-title">PSO（粒子群最適化）ベースの手法（Table 4）</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h3>標準BPSO</h3>
+      <ul>
+        <li>バイナリPSO: 速度→確率変換（sigmoid）</li>
+        <li>粒子: PMU配置パターン</li>
+        <li>pbest/gbest による探索誘導</li>
+        <li>収束が速い傾向</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>PSO変種</h3>
+      <ul>
+        <li>CBPSO: カオス理論を導入</li>
+        <li>QPSO: 量子力学的振る舞い</li>
+        <li>MBPSO: 修正版（慣性重み適応）</li>
+        <li>ハイブリッド: PSO+SA, PSO+GA</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>PSO手法の特徴</h3>
+      <ul>
+        <li><strong>長所:</strong> 実装が簡単、収束が速い</li>
+        <li><strong>短所:</strong> 局所最適解に陥りやすい</li>
+        <li>ZIB・N-1制約の組み込みが容易</li>
+        <li>パラメータ: 慣性重み、学習係数</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="section-title">代表的テストシステムのコンセンサス結果</h2>
+  <table class="data-table">
+    <thead>
+      <tr><th>テストシステム</th><th>バス数</th><th>最小PMU数（ZIBなし）</th><th>最小PMU数（ZIBあり）</th><th>N-1冗長性</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>IEEE 14-Bus</td><td>14</td><td>4</td><td>3</td><td>9</td></tr>
+      <tr><td>IEEE 30-Bus</td><td>30</td><td>10</td><td>7</td><td>&mdash;</td></tr>
+      <tr><td>IEEE 57-Bus</td><td>57</td><td>17</td><td>11</td><td>&mdash;</td></tr>
+      <tr><td>IEEE 118-Bus</td><td>118</td><td>32</td><td>28</td><td>&mdash;</td></tr>
+    </tbody>
+  </table>
+  <p class="result-note">※ 上記は文献間のコンセンサス値。手法によっては異なる最適解セットが報告されています。</p>
+
+  <h2 class="section-title">手法カテゴリ比較サマリー</h2>
+  <table class="data-table">
+    <thead><tr><th>特性</th><th style="color:var(--lp-color)">LP / ILP</th><th style="color:var(--ga-color)">GA</th><th style="color:var(--pso-color)">PSO</th></tr></thead>
+    <tbody>
+      <tr><td>最適解保証</td><td>あり</td><td>なし</td><td>なし</td></tr>
+      <tr><td>複数解発見</td><td>困難</td><td>容易</td><td>中程度</td></tr>
+      <tr><td>計算速度（小規模）</td><td>非常に速い</td><td>中程度</td><td>速い</td></tr>
+      <tr><td>大規模対応</td><td>ソルバー依存</td><td>良好</td><td>良好</td></tr>
+      <tr><td>制約処理</td><td>直接組込</td><td>ペナルティ法</td><td>ペナルティ法</td></tr>
+      <tr><td>実装難易度</td><td>中（ソルバー必要）</td><td>中</td><td>易</td></tr>
+      <tr><td>論文数（本レビュー内）</td><td>最多</td><td>多い</td><td>多い</td></tr>
+    </tbody>
+  </table>
+
+</div>
+
+<!-- ==================== デモ TAB ==================== -->
+<div id="demo" class="tab-content">
+  <div class="demo-controls">
+    <label>テストシステム:</label>
+    <select id="systemSelect">
+      <option value="ieee14">IEEE 14-Bus</option>
+      <option value="ieee30">IEEE 30-Bus</option>
+    </select>
+
+    <label style="margin-left:12px">手法:</label>
+    <button class="method-btn bilp active" data-method="bilp"><span class="method-color-bar" style="background:var(--lp-color)"></span>BILP</button>
+    <button class="method-btn ga" data-method="ga"><span class="method-color-bar" style="background:var(--ga-color)"></span>GA</button>
+    <button class="method-btn pso" data-method="pso"><span class="method-color-bar" style="background:var(--pso-color)"></span>PSO</button>
+
+    <label class="checkbox-label" style="margin-left:16px">
+      <input type="checkbox" id="zibToggle"> ZIB考慮
+    </label>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--pmu-red)"></div>PMU設置バス</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--obs-green)"></div>観測済みバス</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#555"></div>未観測バス</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div>零注入バス (ZIB)</div>
+  </div>
+
+  <div class="dashboard">
+    <div class="network-container">
+      <canvas id="networkCanvas" width="600" height="480"></canvas>
+    </div>
+    <div class="side-panel">
+      <div class="info-card">
+        <h4 id="sideTitle">IEEE 14-Bus — BILP</h4>
+        <div class="stat"><span>システム</span><span class="val" id="statSystem">IEEE 14-Bus</span></div>
+        <div class="stat"><span>手法</span><span class="val" id="statMethod">BILP</span></div>
+        <div class="stat"><span>ZIB考慮</span><span class="val" id="statZIB">なし</span></div>
+        <div class="stat"><span>必要PMU数</span><span class="val" id="statPMU">4</span></div>
+        <div class="stat"><span>総バス数</span><span class="val" id="statBuses">14</span></div>
+        <div class="stat"><span>可観測率</span><span class="val" id="statObs">100%</span></div>
+      </div>
+      <div class="info-card">
+        <h4>PMU配置バス</h4>
+        <div class="pmu-list" id="pmuList"></div>
+      </div>
+      <div class="info-card" id="zibCard" style="display:none">
+        <h4>零注入バス (ZIB)</h4>
+        <div class="pmu-list" id="zibList"></div>
+      </div>
+      <div class="info-card">
+        <h4>コンセンサス結果比較</h4>
+        <div class="comparison-table-wrap">
+          <table class="data-table" style="font-size:12px">
+            <thead><tr><th>条件</th><th>PMU数</th></tr></thead>
+            <tbody id="comparisonBody"></tbody>
+          </table>
+        </div>
+        <p class="result-note">全手法（BILP/GA/PSO）が同一の最小PMU数に収束</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== Tab switching =====
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'demo') drawNetwork();
+  });
+});
+
+// ===== Data =====
+const systems = {
+  ieee14: {
+    name: 'IEEE 14-Bus',
+    buses: 14,
+    zibs: [7],
+    branches: [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],[6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]],
+    pos: {1:[80,350],2:[200,400],3:[350,400],4:[350,280],5:[200,280],6:[80,180],7:[250,200],8:[250,120],9:[400,180],10:[480,180],11:[150,100],12:[80,60],13:[200,60],14:[400,80]},
+    results: {
+      bilp:  { noZI: [2,6,7,9], withZI: [2,6,9] },
+      ga:    { noZI: [2,6,7,9], withZI: [2,6,9] },
+      pso:   { noZI: [2,6,7,9], withZI: [2,6,9] }
+    },
+    comparison: { noZI: 4, withZI: 3, n1: 9 }
+  },
+  ieee30: {
+    name: 'IEEE 30-Bus',
+    buses: 30,
+    zibs: [6, 9, 22, 25, 27, 28],
+    branches: [[1,2],[1,3],[2,4],[2,5],[2,6],[3,4],[4,6],[4,12],[5,7],[6,7],[6,8],[6,9],[6,10],[6,28],[8,28],[9,10],[9,11],[10,17],[10,20],[10,21],[10,22],[12,13],[12,14],[12,15],[12,16],[14,15],[15,18],[15,23],[16,17],[18,19],[19,20],[21,22],[22,24],[23,24],[24,25],[25,26],[25,27],[27,28],[27,29],[27,30],[29,30]],
+    pos: null, // will be generated
+    results: {
+      bilp:  { noZI: [2,4,6,9,10,12,15,19,25,27], withZI: [1,7,10,12,18,24,27] },
+      ga:    { noZI: [2,4,6,9,10,12,15,19,25,27], withZI: [1,7,10,12,18,24,27] },
+      pso:   { noZI: [2,4,6,9,10,12,15,19,25,27], withZI: [1,7,10,12,18,24,27] }
+    },
+    comparison: { noZI: 10, withZI: 7, n1: null }
+  }
+};
+
+// Generate IEEE 30 positions using a simple force-directed layout
+function generateIEEE30Positions() {
+  const W = 560, H = 440, pad = 40;
+  const n = 30;
+  const branches = systems.ieee30.branches;
+  // Initial positions in a circle
+  let pos = {};
+  for (let i = 1; i <= n; i++) {
+    const angle = (2 * Math.PI * i) / n - Math.PI / 2;
+    pos[i] = [W/2 + (W/2 - pad) * 0.7 * Math.cos(angle), H/2 + (H/2 - pad) * 0.7 * Math.sin(angle)];
+  }
+  // Build adjacency
+  const adj = {};
+  for (let i = 1; i <= n; i++) adj[i] = [];
+  branches.forEach(([a,b]) => { adj[a].push(b); adj[b].push(a); });
+
+  // Force-directed iterations
+  for (let iter = 0; iter < 300; iter++) {
+    const forces = {};
+    for (let i = 1; i <= n; i++) forces[i] = [0, 0];
+    // Repulsion
+    for (let i = 1; i <= n; i++) {
+      for (let j = i + 1; j <= n; j++) {
+        let dx = pos[i][0] - pos[j][0], dy = pos[i][1] - pos[j][1];
+        let d = Math.sqrt(dx*dx + dy*dy) || 1;
+        let f = 8000 / (d * d);
+        forces[i][0] += f * dx / d; forces[i][1] += f * dy / d;
+        forces[j][0] -= f * dx / d; forces[j][1] -= f * dy / d;
+      }
+    }
+    // Attraction
+    branches.forEach(([a, b]) => {
+      let dx = pos[b][0] - pos[a][0], dy = pos[b][1] - pos[a][1];
+      let d = Math.sqrt(dx*dx + dy*dy) || 1;
+      let f = (d - 70) * 0.05;
+      forces[a][0] += f * dx / d; forces[a][1] += f * dy / d;
+      forces[b][0] -= f * dx / d; forces[b][1] -= f * dy / d;
+    });
+    // Center gravity
+    for (let i = 1; i <= n; i++) {
+      forces[i][0] += (W/2 - pos[i][0]) * 0.01;
+      forces[i][1] += (H/2 - pos[i][1]) * 0.01;
+    }
+    // Apply
+    const cool = 1 - iter / 350;
+    for (let i = 1; i <= n; i++) {
+      pos[i][0] = Math.max(pad, Math.min(W - pad, pos[i][0] + forces[i][0] * cool * 0.5));
+      pos[i][1] = Math.max(pad, Math.min(H - pad, pos[i][1] + forces[i][1] * cool * 0.5));
+    }
+  }
+  systems.ieee30.pos = pos;
+}
+generateIEEE30Positions();
+
+// ===== State =====
+let currentSystem = 'ieee14';
+let currentMethod = 'bilp';
+let zibEnabled = false;
+
+// ===== UI Wiring =====
+document.getElementById('systemSelect').addEventListener('change', e => { currentSystem = e.target.value; update(); });
+document.querySelectorAll('.method-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMethod = btn.dataset.method;
+    update();
+  });
+});
+document.getElementById('zibToggle').addEventListener('change', e => { zibEnabled = e.target.checked; update(); });
+
+function update() {
+  const sys = systems[currentSystem];
+  const key = zibEnabled ? 'withZI' : 'noZI';
+  const pmus = sys.results[currentMethod][key];
+  const methodNames = { bilp: 'BILP', ga: 'GA', pso: 'PSO' };
+
+  // Build adjacency for observability calc
+  const adj = {};
+  for (let i = 1; i <= sys.buses; i++) adj[i] = [];
+  sys.branches.forEach(([a,b]) => { adj[a].push(b); adj[b].push(a); });
+
+  // Compute observed buses
+  const observed = new Set();
+  pmus.forEach(p => {
+    observed.add(p);
+    adj[p].forEach(n => observed.add(n));
+  });
+  // ZIB propagation
+  if (zibEnabled) {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      sys.zibs.forEach(z => {
+        const neighbors = adj[z];
+        const unobs = neighbors.filter(n => !observed.has(n));
+        if (observed.has(z) && unobs.length === 1) {
+          observed.add(unobs[0]);
+          changed = true;
+        }
+        // If all neighbors but one are observed, and z is observed
+        const neighborsAndZ = [...neighbors, z];
+        const unobsAll = neighborsAndZ.filter(n => !observed.has(n));
+        if (unobsAll.length === 1) {
+          observed.add(unobsAll[0]);
+          changed = true;
+        }
+      });
+    }
+  }
+
+  // Update side panel
+  document.getElementById('sideTitle').textContent = `${sys.name} — ${methodNames[currentMethod]}`;
+  document.getElementById('statSystem').textContent = sys.name;
+  document.getElementById('statMethod').textContent = methodNames[currentMethod];
+  document.getElementById('statZIB').textContent = zibEnabled ? 'あり' : 'なし';
+  document.getElementById('statPMU').textContent = pmus.length;
+  document.getElementById('statBuses').textContent = sys.buses;
+  document.getElementById('statObs').textContent = Math.round(observed.size / sys.buses * 100) + '%';
+
+  // PMU chips
+  const pmuList = document.getElementById('pmuList');
+  pmuList.innerHTML = pmus.map(p => `<span class="pmu-chip">Bus ${p}</span>`).join('');
+
+  // ZIB chips
+  const zibCard = document.getElementById('zibCard');
+  const zibList = document.getElementById('zibList');
+  if (zibEnabled) {
+    zibCard.style.display = '';
+    zibList.innerHTML = sys.zibs.map(z => `<span class="zib-chip">Bus ${z}</span>`).join('');
+  } else {
+    zibCard.style.display = 'none';
+  }
+
+  // Comparison table
+  const compBody = document.getElementById('comparisonBody');
+  compBody.innerHTML = `
+    <tr><td>ZIBなし</td><td>${sys.comparison.noZI}</td></tr>
+    <tr><td>ZIBあり</td><td>${sys.comparison.withZI}</td></tr>
+    <tr><td>N-1冗長性</td><td>${sys.comparison.n1 !== null ? sys.comparison.n1 : '—'}</td></tr>
+  `;
+
+  drawNetwork();
+}
+
+// ===== Canvas Drawing =====
+function drawNetwork() {
+  const canvas = document.getElementById('networkCanvas');
+  const ctx = canvas.getContext('2d');
+  const sys = systems[currentSystem];
+  const key = zibEnabled ? 'withZI' : 'noZI';
+  const pmus = new Set(sys.results[currentMethod][key]);
+  const zibSet = new Set(sys.zibs);
+
+  // Build adjacency
+  const adj = {};
+  for (let i = 1; i <= sys.buses; i++) adj[i] = [];
+  sys.branches.forEach(([a,b]) => { adj[a].push(b); adj[b].push(a); });
+
+  // Observed
+  const observed = new Set();
+  pmus.forEach(p => { observed.add(p); adj[p].forEach(n => observed.add(n)); });
+  if (zibEnabled) {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      sys.zibs.forEach(z => {
+        const neighbors = adj[z];
+        const neighborsAndZ = [...neighbors, z];
+        const unobsAll = neighborsAndZ.filter(n => !observed.has(n));
+        if ((observed.has(z) || neighbors.some(n => observed.has(n))) && unobsAll.length <= 1) {
+          unobsAll.forEach(u => { observed.add(u); changed = true; });
+          observed.add(z);
+        }
+      });
+    }
+  }
+
+  // DPI scaling
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const W = rect.width || 600;
+  const H = currentSystem === 'ieee30' ? 480 : 480;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // Scale positions to canvas
+  const pos = sys.pos;
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (let i = 1; i <= sys.buses; i++) {
+    minX = Math.min(minX, pos[i][0]); maxX = Math.max(maxX, pos[i][0]);
+    minY = Math.min(minY, pos[i][1]); maxY = Math.max(maxY, pos[i][1]);
+  }
+  const pad = 40;
+  const scaleX = (W - 2*pad) / (maxX - minX || 1);
+  const scaleY = (H - 2*pad) / (maxY - minY || 1);
+  const scale = Math.min(scaleX, scaleY);
+  const offX = (W - (maxX - minX) * scale) / 2;
+  const offY = (H - (maxY - minY) * scale) / 2;
+  function tx(i) { return (pos[i][0] - minX) * scale + offX; }
+  function ty(i) { return (pos[i][1] - minY) * scale + offY; }
+
+  // Clear
+  ctx.fillStyle = '#16213e';
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw branches
+  ctx.strokeStyle = '#2a3a5c';
+  ctx.lineWidth = 1.5;
+  sys.branches.forEach(([a, b]) => {
+    ctx.beginPath();
+    ctx.moveTo(tx(a), ty(a));
+    ctx.lineTo(tx(b), ty(b));
+    // Color if both observed
+    if (observed.has(a) && observed.has(b)) {
+      ctx.strokeStyle = 'rgba(39,174,96,0.3)';
+    } else {
+      ctx.strokeStyle = '#2a3a5c';
+    }
+    ctx.stroke();
+  });
+
+  // Draw buses
+  const r = currentSystem === 'ieee30' ? 12 : 15;
+  for (let i = 1; i <= sys.buses; i++) {
+    const x = tx(i), y = ty(i);
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+
+    if (pmus.has(i)) {
+      ctx.fillStyle = '#e74c3c';
+      ctx.fill();
+      // Glow
+      ctx.shadowColor = '#e74c3c';
+      ctx.shadowBlur = 12;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (zibEnabled && zibSet.has(i)) {
+      ctx.fillStyle = '#2980b9';
+      ctx.fill();
+    } else if (observed.has(i)) {
+      ctx.fillStyle = '#27ae60';
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#555';
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${currentSystem === 'ieee30' ? 9 : 11}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i, x, y);
+  }
+
+  // Method indicator
+  const methodColors = { bilp: '#3498db', ga: '#f39c12', pso: '#9b59b6' };
+  const methodNames = { bilp: 'BILP', ga: 'GA', pso: 'PSO' };
+  ctx.fillStyle = methodColors[currentMethod];
+  ctx.fillRect(W - 90, 10, 80, 24);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(methodNames[currentMethod], W - 50, 23);
+}
+
+// Initial render
+update();
+window.addEventListener('resize', drawNetwork);
+</script>
+</body>
+</html>

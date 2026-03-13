@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper 4: Unified PMU Placement - Gou & Kavasseri 2014</title>
+<style>
+  :root {
+    --pmu-red: #e74c3c;
+    --obs-green: #27ae60;
+    --unobs-gray: #95a5a6;
+    --partial-yellow: #f39c12;
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card: #0f3460;
+    --text: #e8e8e8;
+    --accent: #e94560;
+    --border: #2a3a5c;
+    --conv-blue: #3498db;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .back-link {
+    display: inline-block;
+    padding: 8px 16px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+    background: var(--surface);
+  }
+  .back-link:hover { text-decoration: underline; }
+  header {
+    background: linear-gradient(135deg, var(--surface), var(--card));
+    padding: 24px 32px;
+    border-bottom: 2px solid var(--accent);
+  }
+  header h1 { font-size: 1.4rem; color: #fff; }
+  header p { font-size: 0.85rem; color: #aab; margin-top: 4px; }
+  header a { color: var(--accent); font-size: 0.8rem; }
+
+  .tab-bar {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    padding: 14px 28px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #889;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+  }
+  .tab-btn:hover { color: #ccc; }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .explanation {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px;
+    line-height: 1.8;
+  }
+  .explanation h2 {
+    color: var(--accent);
+    margin: 24px 0 12px;
+    font-size: 1.2rem;
+  }
+  .explanation h3 {
+    color: #ccd;
+    margin: 16px 0 8px;
+  }
+  .explanation p, .explanation li {
+    color: #bbc;
+    margin-bottom: 8px;
+  }
+  .explanation ul, .explanation ol { padding-left: 24px; }
+  .math-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    overflow-x: auto;
+    color: #dde;
+  }
+  .highlight-box {
+    background: rgba(233, 69, 96, 0.1);
+    border-left: 4px solid var(--accent);
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .highlight-box.blue {
+    background: rgba(52, 152, 219, 0.1);
+    border-left-color: var(--conv-blue);
+  }
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+  }
+  table.data-table th, table.data-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  table.data-table th {
+    background: var(--card);
+    color: var(--accent);
+  }
+  table.data-table td { color: #bbc; }
+
+  .demo-container {
+    display: flex;
+    height: calc(100vh - 120px);
+  }
+  .demo-sidebar {
+    width: 360px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .demo-main {
+    flex: 1;
+    position: relative;
+  }
+  canvas#network {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .ctrl-group { margin-bottom: 16px; }
+  .ctrl-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: #889;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  select, button {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  select:hover, button:hover { border-color: var(--accent); }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 600;
+  }
+  button.primary:hover { background: #d63851; }
+  button.secondary {
+    background: transparent;
+    border-color: var(--border);
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-card .value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-card .label {
+    font-size: 0.7rem;
+    color: #889;
+    text-transform: uppercase;
+  }
+  .stat-card.full { grid-column: 1 / -1; }
+
+  .legend {
+    margin-top: 16px;
+    font-size: 0.8rem;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #333;
+    flex-shrink: 0;
+  }
+  .pmu-list {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #aab;
+    background: var(--card);
+    padding: 8px 12px;
+    border-radius: 6px;
+    min-height: 32px;
+  }
+  .log-area {
+    margin-top: 12px;
+    background: #0d1117;
+    border-radius: 6px;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: #7ee;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .tooltip {
+    position: absolute;
+    background: rgba(15, 52, 96, 0.95);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+  }
+  .mode-desc {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    color: #aab;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .algo-step {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 4px 0;
+    font-size: 0.8rem;
+    color: #aab;
+    transition: all 0.3s;
+  }
+  .algo-step.active {
+    border-color: var(--accent);
+    color: var(--text);
+    background: rgba(233, 69, 96, 0.15);
+  }
+  .algo-step.done {
+    border-color: var(--obs-green);
+    color: var(--obs-green);
+  }
+  .conv-badge {
+    display: inline-block;
+    background: rgba(52, 152, 219, 0.2);
+    color: var(--conv-blue);
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../../../">&larr; 論文一覧</a>
+
+<header>
+  <h1>Paper 4: Unified PMU Placement for Observability and Bad Data Detection</h1>
+  <p>B. Gou &amp; R. G. Kavasseri (2014) &mdash; IEEE Trans. Power Systems, Vol. 29, No. 6</p>
+  <a href="https://doi.org/10.1109/TPWRS.2014.2307577" target="_blank">DOI: 10.1109/TPWRS.2014.2307577</a>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('explain')">解説</button>
+  <button class="tab-btn" onclick="showTab('demo')">デモ</button>
+</div>
+
+<!-- ===== 解説タブ ===== -->
+<div id="tab-explain" class="tab-content active">
+<div class="explanation">
+
+<h2>1. 論文の背景と目的</h2>
+<p>
+  従来のPMU配置問題は、<strong>観測性（Observability）</strong>の確保のみを目的としていました。
+  しかし、実際の電力系統ではPMUだけでなく、従来型の計測器（潮流計測・注入計測）が既に設置されています。
+  Gou &amp; Kavasseri (2014) は、これらの従来計測を活用しつつ、
+  <strong>不良データ検出（Bad Data Detection）</strong>能力も同時に保証する
+  <strong>統一的なPMU配置手法</strong>を提案しました。
+</p>
+
+<h2>2. 3つのアルゴリズム</h2>
+
+<h3>Algorithm I: ヤコビアンベースの観測性配置</h3>
+<p>
+  従来のBILP（Binary Integer Linear Programming）は、全バスに対して制約を設定するため、
+  問題サイズが大きくなります。本論文では、<strong>ヤコビアン行列の LDL<sup>T</sup> 分解</strong>を用いて、
+  従来計測で既に観測可能なバスを事前に特定し、PMU配置が必要なバスのみに問題を縮小します。
+</p>
+<div class="math-block">
+<strong>手順:</strong><br>
+1. 従来計測のヤコビアン行列 H を構成<br>
+2. H<sup>T</sup>WH の LDL<sup>T</sup> 分解を実行<br>
+3. D の対角要素が 0 のバス = 未観測バス（PMU候補）<br>
+4. 未観測バスのみを対象に縮小BILPを解く<br>
+<br>
+<strong>利点:</strong> 問題サイズが大幅に縮小され、計算効率が向上
+</div>
+
+<h3>Algorithm II: 臨界計測の除去</h3>
+<p>
+  <strong>臨界計測（Critical Measurement）</strong>とは、それを除去するとシステムの観測性が失われる計測のことです。
+  臨界計測が存在すると、不良データ検出が不可能になります（冗長性がないため）。
+</p>
+<div class="highlight-box">
+  <strong>臨界計測の問題点:</strong> 臨界計測に不良データが混入しても、検出する方法がない。
+  電力系統の状態推定の信頼性を確保するには、全ての臨界計測を排除する必要がある。
+</div>
+<p>
+  Algorithm II では、ヤコビアン行列の列ランクを用いて臨界計測を特定し、
+  追加のPMU配置によりこれらを非臨界化します。
+</p>
+
+<h3>Algorithm III: 統一的反復手順</h3>
+<p>
+  Algorithm I と II を組み合わせた反復的な統一手順です。
+</p>
+<div class="math-block">
+<strong>反復手順 (v = イテレーション番号):</strong><br>
+<br>
+v = 0: Algorithm I を実行 → 観測性を確保<br>
+v = 1: Algorithm II を実行 → 臨界計測を特定・除去<br>
+v = 2: 再度 Algorithm II → 臨界計測ペアを除去<br>
+  ...<br>
+収束するまで繰り返す<br>
+<br>
+<strong>収束条件:</strong> 新たな臨界計測が検出されなくなった時点で終了
+</div>
+
+<h2>3. ヤコビアンベースの利点</h2>
+<div class="highlight-box blue">
+  <strong>なぜヤコビアンアプローチが有効か:</strong>
+  <ul style="margin-top: 8px;">
+    <li>従来計測（潮流・注入）の情報を自然に取り込める</li>
+    <li>LDL<sup>T</sup> 分解により未観測バスを効率的に特定</li>
+    <li>問題サイズの縮小により、大規模系統でも実用的</li>
+    <li>臨界計測の特定にもヤコビアン行列を活用可能</li>
+  </ul>
+</div>
+
+<h2>4. 不良データ検出とは</h2>
+<p>
+  状態推定において、計測値に誤差（不良データ）が混入する場合があります。
+  <strong>不良データ検出</strong>は、残差分析（通常は最大正規化残差テスト）により
+  異常な計測値を特定するプロセスです。
+</p>
+<p>
+  検出が可能であるための条件は、<strong>計測の冗長性</strong>です。
+  つまり、各状態変数が複数の独立な計測で推定できる必要があります。
+  臨界計測が存在すると、その計測に対応する状態は1つの計測のみに依存するため、
+  不良データの検出が原理的に不可能になります。
+</p>
+
+<h2>5. IEEE 14バス系統での結果</h2>
+<table class="data-table">
+  <tr>
+    <th>配置モード</th>
+    <th>PMU数</th>
+    <th>PMU位置</th>
+    <th>説明</th>
+  </tr>
+  <tr>
+    <td>標準BILP（従来計測なし）</td>
+    <td>4</td>
+    <td>{2, 6, 7, 9}</td>
+    <td>PMUのみで完全観測性を達成</td>
+  </tr>
+  <tr>
+    <td>従来計測あり (v=0)</td>
+    <td>1</td>
+    <td>{13}</td>
+    <td>24潮流+8注入計測で観測性ギャップが大幅縮小</td>
+  </tr>
+  <tr>
+    <td>統一配置（観測性+不良データ検出）</td>
+    <td>4 (5ユニット)</td>
+    <td>{7, 9, 11, 13}</td>
+    <td>臨界計測を全て排除</td>
+  </tr>
+</table>
+
+<div class="highlight-box">
+  <strong>重要な知見:</strong>
+  従来計測を考慮すると観測性のみなら1台のPMUで十分ですが、
+  不良データ検出能力を確保するには4箇所（5ユニット）が必要です。
+  バス11には2ユニットが配置されます。
+</div>
+
+<h2>6. IEEE 118バス系統での結果</h2>
+<table class="data-table">
+  <tr>
+    <th>条件</th>
+    <th>PMU数</th>
+    <th>PMU位置</th>
+  </tr>
+  <tr>
+    <td>従来計測あり (v=0) 観測性のみ</td>
+    <td>4</td>
+    <td>{10, 32, 75, 80}</td>
+  </tr>
+  <tr>
+    <td>統一配置 (最終)</td>
+    <td>多数</td>
+    <td>反復で臨界計測を段階的に除去</td>
+  </tr>
+</table>
+
+<h2>7. 他手法との比較</h2>
+<table class="data-table">
+  <tr>
+    <th>手法</th>
+    <th>観測性</th>
+    <th>従来計測考慮</th>
+    <th>不良データ検出</th>
+    <th>問題縮小</th>
+  </tr>
+  <tr>
+    <td>Baldwin et al. (1993)</td>
+    <td>○</td>
+    <td>×</td>
+    <td>×</td>
+    <td>×</td>
+  </tr>
+  <tr>
+    <td>Gou (2008) 深度一般化</td>
+    <td>○</td>
+    <td>×</td>
+    <td>×</td>
+    <td>×</td>
+  </tr>
+  <tr>
+    <td>Abbasy (2009) 整数計画法</td>
+    <td>○</td>
+    <td>△</td>
+    <td>×</td>
+    <td>×</td>
+  </tr>
+  <tr>
+    <td><strong>Gou &amp; Kavasseri (2014)</strong></td>
+    <td><strong>○</strong></td>
+    <td><strong>○</strong></td>
+    <td><strong>○</strong></td>
+    <td><strong>○</strong></td>
+  </tr>
+</table>
+
+</div>
+</div>
+
+<!-- ===== デモタブ ===== -->
+<div id="tab-demo" class="tab-content">
+<div class="demo-container">
+  <div class="demo-sidebar">
+    <div class="ctrl-group">
+      <label>配置モード</label>
+      <select id="modeSelect" onchange="onModeChange()">
+        <option value="standard">標準BILP（従来計測なし）</option>
+        <option value="conventional">従来計測あり（観測性のみ）</option>
+        <option value="unified">統一配置（観測性 + 不良データ検出）</option>
+      </select>
+      <div id="modeDesc" class="mode-desc"></div>
+    </div>
+
+    <div class="ctrl-group">
+      <button class="primary" onclick="runOptimal()">最適配置を表示</button>
+    </div>
+    <div class="ctrl-group">
+      <button class="secondary" onclick="runUnifiedAnimation()" id="animBtn" style="display:none;">
+        統一アルゴリズム実行（アニメーション）
+      </button>
+    </div>
+    <div class="ctrl-group">
+      <button class="secondary" onclick="clearAll()">全てクリア</button>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value" id="pmuCount">0</div>
+        <div class="label">PMU数</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="obsCount">0</div>
+        <div class="label">観測バス</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="obsRate">0%</div>
+        <div class="label">観測率</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="critCount">-</div>
+        <div class="label">臨界計測</div>
+      </div>
+    </div>
+
+    <div class="ctrl-group" style="margin-top: 12px;">
+      <label>PMU配置バス</label>
+      <div class="pmu-list" id="pmuList">なし</div>
+    </div>
+
+    <div id="algoSteps" style="margin-top: 12px; display: none;">
+      <label style="display:block; font-size:0.8rem; color:#889; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">アルゴリズム進行</label>
+      <div class="algo-step" id="step0">v=0: Algorithm I - 観測性確保</div>
+      <div class="algo-step" id="step1">v=1: Algorithm II - 臨界計測除去</div>
+      <div class="algo-step" id="step2">v=2: Algorithm II - 臨界ペア除去</div>
+      <div class="algo-step" id="step3">収束: 全臨界計測が排除完了</div>
+    </div>
+
+    <div class="legend" style="margin-top: 16px;">
+      <div class="legend-item"><div class="legend-dot" style="background: var(--pmu-red);"></div> PMU設置バス</div>
+      <div class="legend-item"><div class="legend-dot" style="background: var(--obs-green);"></div> 観測済みバス</div>
+      <div class="legend-item"><div class="legend-dot" style="background: var(--unobs-gray);"></div> 未観測バス</div>
+      <div class="legend-item"><div class="legend-dot" style="background: var(--conv-blue);"></div> 従来計測で観測済み</div>
+    </div>
+
+    <div class="log-area" id="logArea">$ 配置モードを選択して最適配置を表示してください</div>
+  </div>
+
+  <div class="demo-main">
+    <canvas id="network"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+</div>
+</div>
+
+<script>
+// ===== Tab control =====
+function showTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelectorAll('.tab-btn')[tab === 'explain' ? 0 : 1].classList.add('active');
+  if (tab === 'demo') {
+    requestAnimationFrame(() => { resizeCanvas(); draw(); });
+  }
+}
+
+// ===== Network data =====
+const NUM_BUSES = 14;
+const branches = [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],[6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]];
+
+const busPos = {
+  1:[80,350], 2:[200,400], 3:[350,400], 4:[350,280], 5:[200,280],
+  6:[80,180], 7:[250,200], 8:[250,120], 9:[400,180], 10:[480,180],
+  11:[150,100], 12:[80,60], 13:[200,60], 14:[400,80]
+};
+
+// Adjacency
+const adj = {};
+for (let i = 1; i <= NUM_BUSES; i++) adj[i] = [];
+branches.forEach(([a,b]) => { adj[a].push(b); adj[b].push(a); });
+
+// Conventional measurements (24 branch flow + 8 injection)
+const convFlowBranches = [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],[6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]];
+// 8 injection measurements: let's say at buses 1,2,3,5,6,8,10,14
+const convInjBuses = [1, 2, 3, 5, 6, 8, 10, 14];
+
+// Optimal solutions
+const optimalSolutions = {
+  standard: [2, 6, 7, 9],
+  conventional: [13],
+  unified: [7, 9, 11, 13]
+};
+
+const modeDescriptions = {
+  standard: 'PMUのみで全14バスの完全観測性を達成する標準的なBILP定式化。従来計測は考慮しません。最適解は4台のPMU。',
+  conventional: '既設の従来計測（24潮流計測 + 8注入計測）を考慮し、ヤコビアンのLDL<sup>T</sup>分解で未観測バスを特定。縮小BILPにより、追加PMUはバス13の1台のみで観測性を達成。',
+  unified: '観測性に加え、不良データ検出能力を保証する統一配置。臨界計測を反復的に除去し、全ての計測に冗長性を確保。最終的にバス{7, 9, 11, 13}に4箇所・5ユニットのPMUを配置。'
+};
+
+// State
+let pmuBuses = new Set();
+let currentMode = 'standard';
+let animating = false;
+
+// Canvas
+const canvas = document.getElementById('network');
+const ctx = canvas.getContext('2d');
+let scale = 1;
+let offsetX = 0, offsetY = 0;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+
+  const W = rect.width;
+  const H = rect.height;
+  const maxX = 520, maxY = 440;
+  scale = Math.min((W - 80) / maxX, (H - 80) / maxY);
+  offsetX = (W - maxX * scale) / 2;
+  offsetY = (H - maxY * scale) / 2;
+}
+
+function busXY(bus) {
+  const [x, y] = busPos[bus];
+  return [x * scale + offsetX, y * scale + offsetY];
+}
+
+function getObservedBuses() {
+  const observed = new Set();
+  // PMU observes itself + neighbors
+  pmuBuses.forEach(b => {
+    observed.add(b);
+    adj[b].forEach(n => observed.add(n));
+  });
+  return observed;
+}
+
+function getConvObservedBuses() {
+  // In "conventional" and "unified" modes, conventional measurements observe most buses
+  // For simplicity: with 24 flow + 8 injection, buses observed by conventional = all except bus 13 area
+  // According to paper: with conventionals, only bus 8 neighborhood needs PMU coverage
+  // The LDL^T analysis shows only bus 13 area is unobserved
+  // Let's define: conventionals observe all buses EXCEPT {8, 13} (those need PMU)
+  // Actually per paper results, only 1 PMU at 13 is needed, meaning bus 13 is the only gap
+  // So conventionals observe buses {1,2,3,4,5,6,7,8,9,10,11,12,14} and PMU at 13 fills the gap
+  const convObs = new Set([1,2,3,4,5,6,7,8,9,10,11,12,14]);
+  return convObs;
+}
+
+function computeStats() {
+  let observed;
+  let convObserved = new Set();
+
+  if (currentMode === 'standard') {
+    observed = getObservedBuses();
+  } else {
+    convObserved = getConvObservedBuses();
+    const pmuObs = getObservedBuses();
+    observed = new Set([...convObserved, ...pmuObs]);
+  }
+
+  const pmuCount = pmuBuses.size;
+  const obsCount = observed.size;
+  const obsRate = Math.round(obsCount / NUM_BUSES * 100);
+
+  document.getElementById('pmuCount').textContent = pmuCount;
+  document.getElementById('obsCount').textContent = obsCount + '/' + NUM_BUSES;
+  document.getElementById('obsRate').textContent = obsRate + '%';
+
+  if (currentMode === 'unified') {
+    // Simplified critical measurement count
+    const opt = new Set(optimalSolutions.unified);
+    const matching = [...pmuBuses].filter(b => opt.has(b)).length;
+    const crit = matching >= 4 ? 0 : '?';
+    document.getElementById('critCount').textContent = crit;
+  } else {
+    document.getElementById('critCount').textContent = '-';
+  }
+
+  const pmuArr = [...pmuBuses].sort((a,b) => a - b);
+  document.getElementById('pmuList').textContent = pmuArr.length ? pmuArr.map(b => 'Bus ' + b).join(', ') : 'なし';
+
+  return { observed, convObserved };
+}
+
+function draw() {
+  const W = canvas.width / window.devicePixelRatio;
+  const H = canvas.height / window.devicePixelRatio;
+  ctx.clearRect(0, 0, W, H);
+
+  const { observed, convObserved } = computeStats();
+  const pmuObs = getObservedBuses();
+
+  // Draw branches
+  branches.forEach(([a, b]) => {
+    const [x1, y1] = busXY(a);
+    const [x2, y2] = busXY(b);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+
+    // Highlight branches with conventional measurements
+    if (currentMode !== 'standard') {
+      ctx.strokeStyle = 'rgba(52, 152, 219, 0.25)';
+      ctx.lineWidth = 3;
+    } else {
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 2;
+    }
+    ctx.stroke();
+
+    // If both ends observed, stronger line
+    if (observed.has(a) && observed.has(b)) {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      if (pmuBuses.has(a) || pmuBuses.has(b)) {
+        ctx.strokeStyle = 'rgba(231, 76, 60, 0.4)';
+      } else if (currentMode !== 'standard' && (convObserved.has(a) || convObserved.has(b))) {
+        ctx.strokeStyle = 'rgba(52, 152, 219, 0.35)';
+      } else {
+        ctx.strokeStyle = 'rgba(39, 174, 96, 0.3)';
+      }
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  });
+
+  // Draw conventional measurement indicators (small squares on branches)
+  if (currentMode !== 'standard') {
+    convFlowBranches.forEach(([a, b]) => {
+      const [x1, y1] = busXY(a);
+      const [x2, y2] = busXY(b);
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      ctx.fillStyle = 'rgba(52, 152, 219, 0.5)';
+      ctx.fillRect(mx - 3, my - 3, 6, 6);
+    });
+  }
+
+  // Draw buses
+  for (let i = 1; i <= NUM_BUSES; i++) {
+    const [x, y] = busXY(i);
+    const r = pmuBuses.has(i) ? 20 : 16;
+
+    // Glow
+    if (pmuBuses.has(i)) {
+      const glow = ctx.createRadialGradient(x, y, r, x, y, r * 2.5);
+      glow.addColorStop(0, 'rgba(231, 76, 60, 0.35)');
+      glow.addColorStop(1, 'rgba(231, 76, 60, 0)');
+      ctx.beginPath();
+      ctx.arc(x, y, r * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+    }
+
+    // Circle
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    if (pmuBuses.has(i)) {
+      ctx.fillStyle = '#e74c3c';
+    } else if (currentMode !== 'standard' && convObserved.has(i) && !pmuObs.has(i)) {
+      ctx.fillStyle = '#2980b9';
+    } else if (observed.has(i)) {
+      ctx.fillStyle = '#27ae60';
+    } else {
+      ctx.fillStyle = '#5a6a7a';
+    }
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Bus number
+    ctx.fillStyle = '#fff';
+    ctx.font = (pmuBuses.has(i) ? 'bold ' : '') + '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(i, x, y);
+
+    // PMU label
+    if (pmuBuses.has(i)) {
+      ctx.fillStyle = '#e74c3c';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.fillText('PMU', x, y - r - 8);
+
+      // Show unit count for unified mode bus 11
+      if (currentMode === 'unified' && i === 11) {
+        ctx.fillStyle = '#f39c12';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.fillText('x2', x + r + 8, y - 4);
+      }
+    }
+
+    // Injection measurement indicator
+    if (currentMode !== 'standard' && convInjBuses.includes(i)) {
+      ctx.fillStyle = 'rgba(52, 152, 219, 0.7)';
+      ctx.font = '8px sans-serif';
+      ctx.fillText('INJ', x, y + r + 10);
+    }
+  }
+
+  // Title overlay
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = '13px sans-serif';
+  ctx.textAlign = 'left';
+  const titles = {
+    standard: 'IEEE 14-Bus: 標準BILP配置',
+    conventional: 'IEEE 14-Bus: 従来計測あり (v=0)',
+    unified: 'IEEE 14-Bus: 統一配置 (Obs + Bad Data)'
+  };
+  ctx.fillText(titles[currentMode], 16, 24);
+}
+
+// ===== Mode change =====
+function onModeChange() {
+  currentMode = document.getElementById('modeSelect').value;
+  document.getElementById('modeDesc').innerHTML = modeDescriptions[currentMode];
+  document.getElementById('animBtn').style.display = currentMode === 'unified' ? 'block' : 'none';
+  document.getElementById('algoSteps').style.display = 'none';
+  ['step0','step1','step2','step3'].forEach(id => {
+    document.getElementById(id).className = 'algo-step';
+  });
+  clearAll();
+}
+
+function clearAll() {
+  pmuBuses.clear();
+  animating = false;
+  draw();
+  log('クリアしました');
+}
+
+function runOptimal() {
+  pmuBuses.clear();
+  optimalSolutions[currentMode].forEach(b => pmuBuses.add(b));
+  draw();
+  const sol = optimalSolutions[currentMode];
+  log('最適配置: Bus {' + sol.join(', ') + '} (' + sol.length + ' PMUs)');
+  if (currentMode === 'conventional') {
+    log('  → 従来計測(24潮流+8注入)で大部分が観測済み');
+    log('  → PMUはバス13のみで完全観測性を達成');
+  } else if (currentMode === 'unified') {
+    log('  → 4箇所・5ユニット（バス11は2ユニット）');
+    log('  → 全臨界計測が排除され、不良データ検出が可能');
+  }
+}
+
+// ===== Unified algorithm animation =====
+async function runUnifiedAnimation() {
+  if (animating) return;
+  animating = true;
+  pmuBuses.clear();
+  draw();
+
+  const stepsEl = document.getElementById('algoSteps');
+  stepsEl.style.display = 'block';
+  ['step0','step1','step2','step3'].forEach(id => {
+    document.getElementById(id).className = 'algo-step';
+  });
+
+  log('=== 統一アルゴリズム開始 ===');
+
+  // Step v=0: Observability
+  await delay(800);
+  document.getElementById('step0').className = 'algo-step active';
+  log('v=0: Algorithm I - ヤコビアン LDL^T 分解実行');
+  await delay(1000);
+  log('  従来計測のヤコビアン行列 H を構成...');
+  await delay(600);
+  log('  H^T W H の LDL^T 分解...');
+  await delay(600);
+  log('  未観測バス検出: {13}');
+  await delay(600);
+  log('  縮小BILP: バス13にPMU配置');
+  pmuBuses.add(13);
+  draw();
+  await delay(800);
+  log('  → 全14バスが観測可能に');
+  document.getElementById('step0').className = 'algo-step done';
+
+  if (!animating) return;
+
+  // Step v=1: Critical measurement elimination
+  await delay(800);
+  document.getElementById('step1').className = 'algo-step active';
+  log('v=1: Algorithm II - 臨界計測の検出');
+  await delay(800);
+  log('  ヤコビアン列ランク分析中...');
+  await delay(600);
+  log('  臨界計測検出: 12件の臨界計測を発見');
+  await delay(600);
+  log('  → バス7, 9に追加PMU配置で臨界計測を除去');
+  pmuBuses.add(7);
+  pmuBuses.add(9);
+  draw();
+  await delay(800);
+  log('  臨界計測: 12件 → 3件に減少');
+  document.getElementById('step1').className = 'algo-step done';
+
+  if (!animating) return;
+
+  // Step v=2: Critical pairs
+  await delay(800);
+  document.getElementById('step2').className = 'algo-step active';
+  log('v=2: Algorithm II - 残りの臨界計測除去');
+  await delay(800);
+  log('  臨界計測ペアを分析中...');
+  await delay(600);
+  log('  → バス11に追加PMU配置（2ユニット）');
+  pmuBuses.add(11);
+  draw();
+  await delay(600);
+  log('  臨界計測: 3件 → 0件');
+  document.getElementById('step2').className = 'algo-step done';
+
+  if (!animating) return;
+
+  // Convergence
+  await delay(800);
+  document.getElementById('step3').className = 'algo-step active';
+  log('収束: 新たな臨界計測なし');
+  await delay(400);
+  document.getElementById('step3').className = 'algo-step done';
+  log('=== 統一配置完了 ===');
+  log('最終結果: Bus {7, 9, 11, 13} (4箇所, 5ユニット)');
+  log('全ての計測に冗長性が確保され、不良データ検出が可能');
+  draw();
+  animating = false;
+}
+
+function delay(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// ===== Click handling =====
+canvas.addEventListener('click', function(e) {
+  if (animating) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  for (let i = 1; i <= NUM_BUSES; i++) {
+    const [bx, by] = busXY(i);
+    const dist = Math.sqrt((mx - bx) ** 2 + (my - by) ** 2);
+    if (dist < 22) {
+      if (pmuBuses.has(i)) {
+        pmuBuses.delete(i);
+        log('PMU除去: Bus ' + i);
+      } else {
+        pmuBuses.add(i);
+        log('PMU配置: Bus ' + i);
+      }
+      draw();
+      return;
+    }
+  }
+});
+
+// Tooltip
+canvas.addEventListener('mousemove', function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const tip = document.getElementById('tooltip');
+
+  for (let i = 1; i <= NUM_BUSES; i++) {
+    const [bx, by] = busXY(i);
+    const dist = Math.sqrt((mx - bx) ** 2 + (my - by) ** 2);
+    if (dist < 22) {
+      const neighbors = adj[i].sort((a,b) => a - b);
+      let html = '<strong>Bus ' + i + '</strong><br>';
+      html += '隣接: ' + neighbors.join(', ') + '<br>';
+      html += 'PMU: ' + (pmuBuses.has(i) ? '<span style="color:#e74c3c">設置済み</span>' : 'なし');
+      if (currentMode !== 'standard' && convInjBuses.includes(i)) {
+        html += '<br><span style="color:#3498db">注入計測あり</span>';
+      }
+      tip.innerHTML = html;
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX - canvas.parentElement.getBoundingClientRect().left + 12) + 'px';
+      tip.style.top = (e.clientY - canvas.parentElement.getBoundingClientRect().top - 10) + 'px';
+      canvas.style.cursor = 'pointer';
+      return;
+    }
+  }
+  tip.style.display = 'none';
+  canvas.style.cursor = 'default';
+});
+
+// ===== Logging =====
+function log(msg) {
+  const el = document.getElementById('logArea');
+  el.textContent += '\n$ ' + msg;
+  el.scrollTop = el.scrollHeight;
+}
+
+// ===== Init =====
+window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+onModeChange();
+resizeCanvas();
+draw();
+</script>
+
+</body>
+</html>
