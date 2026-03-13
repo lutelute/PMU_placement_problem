@@ -9,6 +9,7 @@ Thumbs.db
 # Papers — DOI only, no PDF redistribution
 pdf/
 old/
+*.pdf
 
 # Python
 __pycache__/
