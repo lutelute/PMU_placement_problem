@@ -1,0 +1,15 @@
+# OS
+Thumbs.db
+.DS_Store
+
+# Editor
+*.swp
+*~
+
+# Papers — DOI only, no PDF redistribution
+pdf/
+old/
+
+# Python
+__pycache__/
+*.pyc
