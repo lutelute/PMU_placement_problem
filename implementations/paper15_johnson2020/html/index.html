@@ -64,7 +64,54 @@ header .doi { font-size: 0.8rem; opacity: 0.6; }
 .tab-content { display: none; padding: 20px; max-width: 1200px; margin: 0 auto; }
 .tab-content.active { display: block; }
 
-/* 解説 tab */
+/* 解説 tab — paper-like style */
+#tab-explain {
+  background: #fff;
+  max-width: 820px;
+  margin: 32px auto;
+  padding: 48px 56px;
+  border-radius: 4px;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+  font-family: 'Georgia', 'Times New Roman', 'Hiragino Mincho ProN', serif;
+  font-size: 15px;
+  line-height: 1.9;
+  color: #333;
+}
+#tab-explain .section { background: transparent; border: none; border-radius: 0; padding: 0; margin-bottom: 28px; }
+#tab-explain .section h2 { color: #1a1a2e; font-size: 1.2rem; margin-bottom: 12px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+#tab-explain .section h3 { color: #2c3e50; font-size: 1rem; margin: 12px 0 6px; }
+#tab-explain .section p { color: #444; font-size: 15px; line-height: 1.9; }
+#tab-explain .section strong { color: #333; }
+#tab-explain .section code { background: #f4f4f4; color: #c0392b; padding: 1px 5px; border-radius: 3px; font-size: 14px; }
+
+#tab-explain .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media(max-width:800px){ #tab-explain .grid-2{grid-template-columns:1fr;} }
+#tab-explain .cat-card {
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+}
+#tab-explain .cat-card h4 { font-size: 1rem; margin-bottom: 8px; color: #2c3e50; }
+#tab-explain .cat-card ul { padding-left: 18px; font-size: 0.9rem; color: #444; }
+#tab-explain .cat-card ul li { margin-bottom: 4px; color: #444; }
+#tab-explain .cat-card p { color: #666; }
+#tab-explain .cat-card strong { color: #333; }
+
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin: 2px; font-weight: bold; }
+.tag-conv { background: #2980b9; color: #fff; }
+.tag-heur { background: #27ae60; color: #fff; }
+.tag-meta { background: #f39c12; color: #fff; }
+.tag-hybrid { background: #9b59b6; color: #fff; }
+
+#tab-explain table.ref-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
+#tab-explain table.ref-table th, #tab-explain table.ref-table td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; color: #444; }
+#tab-explain table.ref-table th { background: #f0f0f0; color: #1a1a2e; }
+#tab-explain table.ref-table tr:nth-child(even) { background: #f8f9fa; }
+#tab-explain table.ref-table tr:hover { background: #f0f0f0; }
+
+/* Demo tab keeps dark section style */
+#tab-demo .section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
 .section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
 .section h2 { color: var(--accent); font-size: 1.2rem; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
 .section h3 { color: #7ec8e3; font-size: 1rem; margin: 12px 0 6px; }
@@ -79,11 +126,6 @@ header .doi { font-size: 0.8rem; opacity: 0.6; }
 .cat-card h4 { font-size: 1rem; margin-bottom: 8px; }
 .cat-card ul { padding-left: 18px; font-size: 0.9rem; }
 .cat-card ul li { margin-bottom: 4px; }
-.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin: 2px; font-weight: bold; }
-.tag-conv { background: #2980b9; color: #fff; }
-.tag-heur { background: #27ae60; color: #fff; }
-.tag-meta { background: #f39c12; color: #fff; }
-.tag-hybrid { background: #9b59b6; color: #fff; }
 table.ref-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
 table.ref-table th, table.ref-table td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
 table.ref-table th { background: var(--card); color: var(--accent); }
@@ -205,7 +247,7 @@ canvas { max-width: 100%; }
           <li><strong>NLP</strong> (Nonlinear Programming) — 非線形制約を含む場合。</li>
           <li><strong>SDP</strong> (Semidefinite Programming) — 半正定値計画法。</li>
         </ul>
-        <p style="font-size:0.85rem;margin-top:8px;opacity:0.8;">利点：最適性保証。欠点：大規模系統で計算量爆発。</p>
+        <p style="font-size:0.85rem;margin-top:8px;">利点：最適性保証。欠点：大規模系統で計算量爆発。</p>
       </div>
       <div class="cat-card">
         <h4><span class="tag tag-heur">Heuristic</span> ヒューリスティック手法</h4>
@@ -215,7 +257,7 @@ canvas { max-width: 100%; }
           <li><strong>Greedy Algorithm</strong> — 貪欲法ベース</li>
           <li><strong>BSA</strong> (Bus Spanning Analysis)</li>
         </ul>
-        <p style="font-size:0.85rem;margin-top:8px;opacity:0.8;">利点：実装容易・高速。欠点：最適性保証なし。</p>
+        <p style="font-size:0.85rem;margin-top:8px;">利点：実装容易・高速。欠点：最適性保証なし。</p>
       </div>
       <div class="cat-card">
         <h4><span class="tag tag-meta">Meta-heuristic</span> メタヒューリスティック手法</h4>
@@ -226,7 +268,7 @@ canvas { max-width: 100%; }
           <li><strong>SA</strong> (Simulated Annealing) — 焼きなまし法</li>
           <li><strong>Tabu Search</strong> / <strong>ABC</strong> / <strong>Firefly</strong> 等</li>
         </ul>
-        <p style="font-size:0.85rem;margin-top:8px;opacity:0.8;">利点：大規模問題に適応。欠点：パラメータ調整が必要。</p>
+        <p style="font-size:0.85rem;margin-top:8px;">利点：大規模問題に適応。欠点：パラメータ調整が必要。</p>
       </div>
       <div class="cat-card">
         <h4><span class="tag tag-hybrid">Hybrid</span> ハイブリッド手法 ★本論文の重点</h4>
@@ -236,7 +278,7 @@ canvas { max-width: 100%; }
           <li><strong>GA + SA</strong> — 探索と局所改善の組合せ</li>
           <li><strong>BIP + Graph Theory</strong> — 厳密解 + 構造的知識</li>
         </ul>
-        <p style="font-size:0.85rem;margin-top:8px;opacity:0.8;">利点：精度と速度のバランス。2015年以降の主流。</p>
+        <p style="font-size:0.85rem;margin-top:8px;">利点：精度と速度のバランス。2015年以降の主流。</p>
       </div>
     </div>
   </div>
@@ -281,16 +323,16 @@ canvas { max-width: 100%; }
     <h2>トレンド：ハイブリッド手法の台頭</h2>
     <p>2003-2010年は従来型（ILP/BILP）が主流でしたが、2010年以降はメタヒューリスティック手法が増加。2015年以降は<strong>ハイブリッド手法</strong>が急増し、数理最適化の最適性保証とヒューリスティックの計算効率を両立する研究が活発化しています。</p>
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:140px;background:var(--card);border-radius:6px;padding:12px;text-align:center;">
-        <div style="font-size:0.8rem;opacity:0.7;">2003-2010</div>
+      <div style="flex:1;min-width:140px;background:#f0f4f8;border:1px solid #ddd;border-radius:6px;padding:12px;text-align:center;">
+        <div style="font-size:0.8rem;color:#888;">2003-2010</div>
         <div style="font-size:1.2rem;font-weight:bold;color:#2980b9;">従来型中心</div>
       </div>
-      <div style="flex:1;min-width:140px;background:var(--card);border-radius:6px;padding:12px;text-align:center;">
-        <div style="font-size:0.8rem;opacity:0.7;">2010-2015</div>
-        <div style="font-size:1.2rem;font-weight:bold;color:#f39c12;">メタヒューリスティック</div>
+      <div style="flex:1;min-width:140px;background:#f0f4f8;border:1px solid #ddd;border-radius:6px;padding:12px;text-align:center;">
+        <div style="font-size:0.8rem;color:#888;">2010-2015</div>
+        <div style="font-size:1.2rem;font-weight:bold;color:#e67e22;">メタヒューリスティック</div>
       </div>
-      <div style="flex:1;min-width:140px;background:var(--card);border-radius:6px;padding:12px;text-align:center;">
-        <div style="font-size:0.8rem;opacity:0.7;">2015-2020</div>
+      <div style="flex:1;min-width:140px;background:#f0f4f8;border:1px solid #ddd;border-radius:6px;padding:12px;text-align:center;">
+        <div style="font-size:0.8rem;color:#888;">2015-2020</div>
         <div style="font-size:1.2rem;font-weight:bold;color:#9b59b6;">ハイブリッド主流</div>
       </div>
     </div>

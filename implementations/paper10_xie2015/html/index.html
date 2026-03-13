@@ -89,51 +89,54 @@ header .subtitle a {
 
 /* === Explanation Tab === */
 .explanation-section {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 24px;
-  margin-bottom: 20px;
+  max-width: 820px;
+  margin: 32px auto;
+  padding: 48px 56px;
+  background: #fff;
+  color: #333;
+  font-family: 'Georgia', 'Times New Roman', 'Hiragino Mincho ProN', serif;
+  line-height: 1.9;
+  font-size: 15px;
+  border-radius: 4px;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.15);
 }
 .explanation-section h2 {
-  font-size: 18px;
-  color: var(--accent);
-  margin-bottom: 14px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
+  color: #1a1a2e;
+  margin: 32px 0 14px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 6px;
 }
 .explanation-section h3 {
-  font-size: 15px;
-  color: #ccc;
-  margin: 14px 0 8px;
+  color: #2c3e50;
+  margin: 20px 0 10px;
+  font-size: 1.05rem;
 }
 .explanation-section p, .explanation-section li {
-  font-size: 14px;
-  line-height: 1.8;
-  color: #ccc;
+  color: #444;
+  margin-bottom: 10px;
 }
-.explanation-section ul {
-  padding-left: 20px;
-  margin: 8px 0;
-}
+.explanation-section ul { padding-left: 24px; }
 .explanation-section code {
-  background: var(--card);
+  background: #f4f4f4;
+  color: #c0392b;
   padding: 2px 6px;
   border-radius: 3px;
-  font-size: 13px;
-  color: #f0c040;
+  font-size: 0.9em;
 }
 
 .math-block {
-  background: var(--card);
-  border-radius: 8px;
-  padding: 16px;
-  margin: 12px 0;
-  font-family: 'Courier New', monospace;
-  font-size: 14px;
-  color: #ddd;
+  background: #f8f8f8;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  font-family: 'Cambria Math', 'Georgia', serif;
+  font-size: 1.05em;
+  text-align: center;
+  color: #222;
   overflow-x: auto;
-  line-height: 1.6;
 }
 
 .comparison-table {
@@ -161,13 +164,12 @@ header .subtitle a {
 }
 
 .highlight-box {
-  background: rgba(233, 69, 96, 0.1);
-  border-left: 3px solid var(--accent);
-  padding: 12px 16px;
+  background: #fff8f0;
+  border-left: 4px solid #e67e22;
+  padding: 12px 18px;
   margin: 12px 0;
   border-radius: 0 6px 6px 0;
-  font-size: 14px;
-  color: #ccc;
+  color: #444;
 }
 
 /* === Demo Tab === */
