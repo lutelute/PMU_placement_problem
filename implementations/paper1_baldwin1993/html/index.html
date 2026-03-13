@@ -23,6 +23,15 @@
     color: var(--text);
     min-height: 100vh;
   }
+  .back-link {
+    display: inline-block;
+    padding: 8px 16px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+    background: var(--surface);
+  }
+  .back-link:hover { text-decoration: underline; }
   header {
     background: linear-gradient(135deg, var(--surface), var(--card));
     padding: 24px 32px;
@@ -451,6 +460,7 @@
 </head>
 <body>
 
+<a class="back-link" href="../../../">&larr; 論文一覧</a>
 <header>
   <h1>Paper 1: PMU Optimal Placement for Power System Observability</h1>
   <p>T.L. Baldwin, L. Mili, M.B. Boisen Jr., R. Adapa (1993) — IEEE Trans. Power Systems</p>
