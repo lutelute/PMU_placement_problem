@@ -80,13 +80,15 @@ PMU_placement_problem/
 
 **1. Power System Observability with Minimal Phasor Measurement Placement**
 Baldwin et al. (1993) — IEEE Trans. Power Systems — [DOI](https://doi.org/10.1109/59.260810)
-PMU最小配置問題を初めて定式化した先駆的論文。二分探索とSAを組み合わせ、全バスの1/4〜1/3程度のPMU設置で完全観測性が達成できることを示した。
+
+PMU最小配置問題（OPP）を初めて体系的に定式化した先駆的論文。観測性の3ルール（直接観測・隣接観測・KCL伝搬）を定義し、二分探索とシミュレーテッドアニーリング（SA）を組み合わせた解法を提案。IEEE 14/30/57/118-busで検証し、全バスの1/4〜1/3程度のPMUで完全観測性が達成できることを実証した。
 
 ---
 
 **2. Generalized Integer Linear Programming Formulation for Optimal PMU Placement**
 Gou (2008) — IEEE Trans. Power Systems — [DOI](https://doi.org/10.1109/TPWRS.2008.926475)
-「非観測深度（Depth-of-Unobservability）」を導入し、完全観測性を一般化。Depth-1に緩和するだけでPMU数が約50%削減されることを示した。
+
+「非観測深度（Depth-of-Unobservability）」の概念を導入し、完全観測性（Depth-0）を一般化。接続行列のべき乗 f^(d+1)·x ≥ 1 による定式化で、Depth-1に緩和するだけでPMU数が約50%削減されることを示した。BILPとして厳密解が得られる点が強み。
 
 ---
 
@@ -94,31 +96,36 @@ Gou (2008) — IEEE Trans. Power Systems — [DOI](https://doi.org/10.1109/TPWRS
 
 **3. A Unified Approach for the Optimal PMU Location for Power System State Estimation**
 Abbasy, Ismail (2009) — IEEE Trans. Power Systems — [DOI](https://doi.org/10.1109/TPWRS.2009.2016596)
-従来計測とPMU損失（N-1）の単・複数ケースを組み込んだBILP定式化。LR法による効率的な求解。
+
+従来計測（SCADA）の存在、PMU単一損失（N-1）、複数PMU同時損失を統一的に扱うBILP定式化を提案。ラグランジュ緩和（LR）法により大規模系統でも効率的に求解可能。IEEE 14-busでN-1 PMU損失時に9台が必要であることを示した。
 
 ---
 
 **4. Unified PMU Placement for Observability and Bad Data Detection in State Estimation**
 Gou, Kavasseri (2014) — IEEE Trans. Power Systems — [DOI](https://doi.org/10.1109/TPWRS.2014.2307577)
-観測性とバッドデータ検出を統合。ヤコビアンLDL^T分解により問題サイズを縮小し、従来計測がある場合IEEE 14-busで1 PMUのみで観測可能。
+
+観測性確保とバッドデータ検出（BDD）能力を同時に最適化する統合定式化。ヤコビアンのLDL^T分解により問題サイズを縮小。従来計測が十分にある場合、IEEE 14-busでわずか1台のPMUで観測可能になることを示した。
 
 ---
 
 **5. Robust Measurement Design by Placing Synchronized Phasor Measurements on Network Branches**
 Emami, Abur (2010) — IEEE Trans. Power Systems — [DOI](https://doi.org/10.1109/TPWRS.2009.2036474)
-バスではなくブランチ（送電線）にPMUを配置するモデルを提案。状態推定の堅牢性向上に寄与。
+
+従来のバス設置型ではなく、ブランチ（送電線）にPMUを配置するモデルを提案。線路の両端電圧・電流を同時計測することで、状態推定の数値的堅牢性（条件数）を大幅に改善。測定冗長性の向上にも寄与する。
 
 ---
 
 **6. Optimal PMU Placement in the Presence of Conventional Measurements**
 Jin et al. (2022) — Int. Trans. Elec. Energy Syst. — [DOI](https://doi.org/10.1155/2022/8078010)
-既存の従来計測（SCADA）を考慮したBILP手法。ネットワーク変換により従来計測をPMU等価に変換。
+
+既存のSCADA計測を活用してPMU必要数を削減するBILP手法。ネットワーク変換（観測島のマージ）により従来計測をPMU等価に変換し、追加PMUの最小化を図る。実運用への移行を意識した実用的アプローチ。
 
 ---
 
 **7. An Optimal PMU Placement Method for Power System Observability Under Various Contingencies**
 Abiri et al. (2014) — Int. Trans. Elec. Energy Syst. — [DOI](https://doi.org/10.1002/etep.1848)
-N-1送電線事故とN-1 PMU損失を考慮。5つのZIBルールによる制約削減でPMU数を最小化。
+
+N-1送電線事故とN-1 PMU損失の両方を考慮した包括的な定式化。5つのZIBルール（KCL伝搬の拡張）による制約削減でPMU数を最小化。IEEE 14-busでZIBありの場合3台で完全観測性を達成。
 
 ---
 
@@ -126,13 +133,15 @@ N-1送電線事故とN-1 PMU損失を考慮。5つのZIBルールによる制約
 
 **8. Optimal PMU Placement for Power System Dynamic State Estimation by Using Empirical Observability Gramian**
 Qi, Sun, Kang (2015) — IEEE Trans. Power Systems — [DOI](https://doi.org/10.1109/TPWRS.2014.2356797)
-経験的観測可能性グラミアンで観測度を定量化。動的状態推定（UKF）における配置最適化。
+
+経験的観測可能性グラミアン（EOG）により系統の観測度を定量的に評価。グラミアン行列式の最大化を目的関数とし、動的状態推定（UKF: Unscented Kalman Filter）における最適なPMU配置を決定する。静的観測性だけでなく動的応答の推定精度も考慮した点が特徴。
 
 ---
 
 **9. Optimal PMU Placement for Modeling Power Grid Observability with Mathematical Programming Methods**
 Almunif, Fan (2019) — Int. Trans. Elec. Energy Syst. — [DOI](https://doi.org/10.1002/2050-7038.12182)
-MILP・NLP定式化の体系的比較。基本/ZIB/潮流計測/PMU故障/チャネル制限の5シナリオで検証。
+
+MILP（混合整数線形計画）とNLP（非線形計画）の定式化を体系的に比較。基本観測性・ZIB・潮流計測・PMU故障・チャネル制限の5シナリオで検証し、各手法の適用範囲と計算コストのトレードオフを明らかにした。
 
 ---
 
@@ -140,19 +149,22 @@ MILP・NLP定式化の体系的比較。基本/ZIB/潮流計測/PMU故障/チャ
 
 **10. A Graph Theory Based Methodology for Optimal PMUs Placement and Multiarea Power System State Estimation**
 Xie et al. (2015) — Electric Power Systems Research — [DOI](https://doi.org/10.1016/j.epsr.2014.08.023)
-Q = A^T·A行列を用いたグラフ理論的アプローチ。貪欲法により大規模系統にも適用可能。多エリアSEに対応。
+
+隣接行列から構成されるQ = A^T·A行列を用いたグラフ理論的アプローチ。貪欲法による近似解法で大規模系統にもスケール可能。多エリア分割での分散状態推定にも対応し、エリア間の境界バス処理を定式化。
 
 ---
 
 **11. Optimal PMU Placement Solution: Graph Theory and MCDM-Based Approach**
 Ghosh et al. (2017) — IET GTD — [DOI](https://doi.org/10.1049/iet-gtd.2017.0155)
-グラフ理論とAHP（階層分析法）ベースの多基準意思決定法を組み合わせ、PMU配置候補をランク付け。
+
+グラフ理論で候補を絞り込み、AHP（階層分析法）ベースの多基準意思決定法（MCDM）で最終配置をランク付け。接続度・観測冗長性・経済性など複数の評価基準を統合的に扱う点が特徴。
 
 ---
 
 **12. Optimal Placement of PMUs Using Topology Based Formulated Algorithms**
 Mohammadi et al. (2009) — J. Applied Sciences — [DOI](https://doi.org/10.3923/jas.2009.2463.2468)
-トポロジーベースのグラフアルゴリズム。**PDF未取得のため検証スキップ。**
+
+トポロジーベースのグラフアルゴリズムによるPMU配置手法。**PDF未取得のため検証スキップ。**
 
 ---
 
@@ -160,19 +172,22 @@ Mohammadi et al. (2009) — J. Applied Sciences — [DOI](https://doi.org/10.392
 
 **13. Taxonomy of PMU Placement Methodologies**
 Manousakis et al. (2012) — IEEE Trans. Power Systems — [DOI](https://doi.org/10.1109/TPWRS.2011.2179816)
-PMU配置手法を数理計画法・ヒューリスティック・メタヒューリスティックに分類した最も広く引用されるサーベイ（44文献）。
+
+PMU配置手法を数理計画法（LP/ILP）・ヒューリスティック（貪欲法・探索木）・メタヒューリスティック（GA/SA/PSO）に体系的に分類した、この分野で最も広く引用されるサーベイ。44文献をカバーし、各手法の長所・短所を比較。
 
 ---
 
 **14. A Critical Review of State-of-the-Art Optimal PMU Placement Techniques**
 Ahmed et al. (2022) — Energies (MDPI) — [DOI](https://doi.org/10.3390/en15062125)
-LP/GA/PSO各手法カテゴリを網羅した2022年の包括的レビュー。SCADA vs PMUの比較も含む。
+
+LP・GA・PSO各手法カテゴリを網羅した2022年時点の包括的レビュー。SCADA計測とPMU計測の特性比較、ZIB・N-1制約の扱い方の違いなど、実装上の論点も整理。
 
 ---
 
 **15. A Critical Review of Methods for Optimal Placement of Phasor Measurement Units**
 Johnson, Moger (2020) — Int. Trans. Elec. Energy Syst. — [DOI](https://doi.org/10.1002/2050-7038.12698)
-2003〜2020年のハイブリッド手法を調査。従来手法からハイブリッドへの潮流を分析。
+
+2003〜2020年の文献を対象に、単一手法からハイブリッド手法（GA+SA、PSO+ILPなど）への発展の潮流を分析。各ハイブリッド手法の組み合わせパターンと性能向上の傾向を整理した。
 
 ---
 
