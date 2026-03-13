@@ -321,22 +321,20 @@ d は許容される非観測深度
   接続行列の冪乗を事前計算することで、任意の深度に対応可能です。
 </p>
 
-<h2>5. ベンチマーク結果（ZIなし）</h2>
+<h2>5. ベンチマーク結果（ZIなし — Table I）</h2>
 <table class="data-table">
   <tr><th>テスト系統</th><th>Complete (d=0)</th><th>Depth-1 (d=1)</th><th>Depth-2 (d=2)</th></tr>
   <tr><td>IEEE 14-bus</td><td>4</td><td>2</td><td>2</td></tr>
-  <tr><td>IEEE 30-bus</td><td>10</td><td>5</td><td>3</td></tr>
-  <tr><td>IEEE 57-bus</td><td>17</td><td>9</td><td>6</td></tr>
-  <tr><td>IEEE 118-bus</td><td>32</td><td>17</td><td>11</td></tr>
+  <tr><td>IEEE 30-bus</td><td>10</td><td>4</td><td>3</td></tr>
+  <tr><td>IEEE 57-bus</td><td>17</td><td>11</td><td>8</td></tr>
 </table>
 
-<h2>6. ベンチマーク結果（ZIあり）</h2>
+<h2>6. ベンチマーク結果（ZIあり — Table II）</h2>
 <table class="data-table">
-  <tr><th>テスト系統</th><th>Complete (d=0)</th><th>Depth-1 (d=1)</th><th>Depth-2 (d=2)</th></tr>
-  <tr><td>IEEE 14-bus</td><td>3</td><td>2</td><td>1</td></tr>
-  <tr><td>IEEE 30-bus</td><td>7</td><td>4</td><td>2</td></tr>
-  <tr><td>IEEE 57-bus</td><td>11</td><td>7</td><td>4</td></tr>
-  <tr><td>IEEE 118-bus</td><td>28</td><td>15</td><td>9</td></tr>
+  <tr><th>テスト系統</th><th># ZI</th><th>Complete (d=0)</th><th>Depth-1 (d=1)</th><th>Depth-2 (d=2)</th></tr>
+  <tr><td>IEEE 14-bus</td><td>1</td><td>3</td><td>2</td><td>2</td></tr>
+  <tr><td>IEEE 30-bus</td><td>7</td><td>7</td><td>4</td><td>3</td></tr>
+  <tr><td>IEEE 57-bus</td><td>17</td><td>11</td><td>9</td><td>8</td></tr>
 </table>
 
 <div class="highlight-box">
@@ -352,6 +350,15 @@ d は許容される非観測深度
 <div id="tab-demo" class="tab-content">
 <div class="demo-container">
   <div class="demo-sidebar">
+    <div class="ctrl-group">
+      <label>テスト系統</label>
+      <select id="systemSelect" onchange="onSystemChange()">
+        <option value="ieee14">IEEE 14-Bus</option>
+        <option value="ieee30">IEEE 30-Bus</option>
+        <option value="ieee57">IEEE 57-Bus</option>
+      </select>
+    </div>
+
     <div class="ctrl-group">
       <label>観測モード</label>
       <select id="modeSelect" onchange="onModeChange()">
@@ -416,75 +423,115 @@ d は許容される非観測深度
 
 <script>
 // =============================================================================
-// IEEE 14-bus System Data
+// All Benchmark Systems (IEEE 14, 30, 57)
 // =============================================================================
-const N = 14;
-const BRANCHES = [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],
-                   [6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]];
-const BUS_POS = {
-  1:[80,350], 2:[200,400], 3:[350,400], 4:[350,280], 5:[200,280],
-  6:[80,180], 7:[250,200], 8:[250,120], 9:[400,180], 10:[480,180],
-  11:[150,100], 12:[80,60], 13:[200,60], 14:[400,80]
-};
-
-// Known optimal solutions
-const OPTIMAL = {
-  complete: [2, 6, 7, 9],
-  depth1: [2, 9],
-  depth2: [4, 9]
+const SYSTEMS = {
+  ieee14: {
+    name: 'IEEE 14-Bus',
+    n: 14,
+    branches: [[1,2],[1,5],[2,3],[2,4],[2,5],[3,4],[4,5],[4,7],[4,9],[5,6],
+               [6,11],[6,12],[6,13],[7,8],[7,9],[9,10],[9,14],[10,11],[12,13],[13,14]],
+    pos: {
+      1:[80,350], 2:[200,400], 3:[350,400], 4:[350,280], 5:[200,280],
+      6:[80,180], 7:[250,200], 8:[250,120], 9:[400,180], 10:[480,180],
+      11:[150,100], 12:[80,60], 13:[200,60], 14:[400,80]
+    },
+    optimal: {
+      complete: [2, 6, 7, 9],
+      depth1: [2, 9],
+      depth2: [4, 9]
+    }
+  },
+  ieee30: {
+    name: 'IEEE 30-Bus',
+    n: 30,
+    branches: [[1,2],[1,3],[2,4],[2,5],[2,6],[3,4],[4,6],[4,12],[5,7],[6,7],
+               [6,8],[6,9],[6,10],[6,28],[8,28],[9,10],[9,11],[10,17],[10,20],[10,21],
+               [10,22],[12,13],[12,14],[12,15],[12,16],[14,15],[15,18],[15,23],[16,17],[18,19],
+               [19,20],[21,22],[22,24],[23,24],[24,25],[25,26],[25,27],[27,28],[27,29],[27,30],
+               [29,30]],
+    pos: null,
+    optimal: {
+      complete: [1, 5, 10, 11, 12, 15, 18, 24, 27, 29],
+      depth1: [2, 10, 15, 27],
+      depth2: [6, 12, 27]
+    }
+  },
+  ieee57: {
+    name: 'IEEE 57-Bus',
+    n: 57,
+    branches: [[1,2],[1,15],[1,16],[1,17],[2,3],[3,4],[3,15],[4,5],[4,6],[4,18],
+               [5,6],[6,7],[6,8],[7,8],[7,29],[8,9],[9,10],[9,11],[9,12],[9,13],
+               [11,13],[12,13],[12,16],[12,17],[13,14],[13,15],[14,15],[14,46],[15,45],
+               [18,19],[19,20],[20,21],[21,22],[22,23],[22,38],[23,24],[24,25],
+               [25,26],[26,27],[27,28],[28,29],[29,52],[30,31],[31,32],[32,33],[33,34],
+               [34,35],[35,36],[36,37],[37,38],[37,39],[38,44],[38,48],[38,49],[39,57],
+               [40,56],[40,42],[41,42],[41,43],[42,56],[42,57],[43,44],[44,45],[46,47],
+               [47,48],[48,49],[49,50],[50,51],[51,52],[52,53],[53,54],[54,55],[56,57],
+               [39,40],[30,25],[9,55],[36,40]],
+    pos: null,
+    optimal: {
+      complete: [1, 4, 9, 15, 20, 23, 25, 29, 32, 36, 38, 41, 45, 49, 52, 54],
+      depth1: [1, 9, 19, 25, 32, 38, 41, 49, 54],
+      depth2: [9, 20, 32, 38, 47, 54]
+    }
+  }
 };
 
 // =============================================================================
 // State
 // =============================================================================
+let currentSystem = 'ieee14';
 let pmuState = {};
-for (let i = 1; i <= N; i++) pmuState[i] = false;
 let canvas, ctx;
 let hoveredBus = null;
 let busPositions = {};
 
+function initState() {
+  const sys = SYSTEMS[currentSystem];
+  pmuState = {};
+  for (let i = 1; i <= sys.n; i++) pmuState[i] = false;
+}
+
 // =============================================================================
-// Adjacency
+// Adjacency & Matrix Operations
 // =============================================================================
 function buildAdj() {
+  const sys = SYSTEMS[currentSystem];
   const adj = {};
-  for (let i = 1; i <= N; i++) adj[i] = [];
-  for (const [a, b] of BRANCHES) { adj[a].push(b); adj[b].push(a); }
-  return adj;
+  for (let i = 1; i <= sys.n; i++) adj[i] = new Set();
+  for (const [a, b] of sys.branches) { adj[a].add(b); adj[b].add(a); }
+  const result = {};
+  for (const k in adj) result[k] = [...adj[k]].sort((a,b)=>a-b);
+  return result;
 }
-const ADJ = buildAdj();
 
-// Build connectivity matrix
 function buildConnMatrix() {
-  const f = Array.from({length: N}, () => new Float64Array(N));
-  for (let i = 0; i < N; i++) f[i][i] = 1;
-  for (const [a, b] of BRANCHES) {
+  const sys = SYSTEMS[currentSystem];
+  const n = sys.n;
+  const f = Array.from({length: n}, () => new Float64Array(n));
+  for (let i = 0; i < n; i++) f[i][i] = 1;
+  for (const [a, b] of sys.branches) {
     f[a-1][b-1] = 1;
     f[b-1][a-1] = 1;
   }
   return f;
 }
 
-// Boolean matrix multiply
 function boolMatMul(A, B) {
   const n = A.length;
   const C = Array.from({length: n}, () => new Float64Array(n));
   for (let i = 0; i < n; i++)
-    for (let j = 0; j < n; j++) {
-      for (let k = 0; k < n; k++) {
+    for (let j = 0; j < n; j++)
+      for (let k = 0; k < n; k++)
         if (A[i][k] && B[k][j]) { C[i][j] = 1; break; }
-      }
-    }
   return C;
 }
 
-// Get f^(d+1) (boolean power of connectivity matrix)
 function getPowerMatrix(depth) {
   let f = buildConnMatrix();
   let result = buildConnMatrix();
-  for (let d = 0; d < depth; d++) {
-    result = boolMatMul(result, f);
-  }
+  for (let d = 0; d < depth; d++) result = boolMatMul(result, f);
   return result;
 }
 
@@ -492,36 +539,101 @@ function getPowerMatrix(depth) {
 // Observability check with depth
 // =============================================================================
 function checkObservability() {
+  const sys = SYSTEMS[currentSystem];
+  const n = sys.n;
   const mode = document.getElementById('modeSelect').value;
   let depth = 0;
   if (mode === 'depth1') depth = 1;
   if (mode === 'depth2') depth = 2;
 
   const fPow = getPowerMatrix(depth);
-  const x = new Float64Array(N);
+  const x = new Float64Array(n);
   const pmuBuses = [];
-  for (let i = 1; i <= N; i++) {
+  for (let i = 1; i <= n; i++) {
     if (pmuState[i]) { x[i-1] = 1; pmuBuses.push(i); }
   }
 
-  // Direct observability (depth-0)
   const fDirect = buildConnMatrix();
   const directObs = new Set();
-  for (let i = 0; i < N; i++) {
+  for (let i = 0; i < n; i++) {
     let sum = 0;
-    for (let j = 0; j < N; j++) sum += fDirect[i][j] * x[j];
+    for (let j = 0; j < n; j++) sum += fDirect[i][j] * x[j];
     if (sum >= 1) directObs.add(i + 1);
   }
 
-  // Depth-d observability
   const observed = new Set();
-  for (let i = 0; i < N; i++) {
+  for (let i = 0; i < n; i++) {
     let sum = 0;
-    for (let j = 0; j < N; j++) sum += fPow[i][j] * x[j];
+    for (let j = 0; j < n; j++) sum += fPow[i][j] * x[j];
     if (sum >= 1) observed.add(i + 1);
   }
 
-  return { observed, directObs, pmuBuses, complete: observed.size === N };
+  return { observed, directObs, pmuBuses, complete: observed.size === n };
+}
+
+// =============================================================================
+// Force-directed layout for systems without predefined positions
+// =============================================================================
+function forceDirectedLayout(n, branches, width, height, iterations) {
+  const pad = 50;
+  const w = width - 2 * pad;
+  const h = height - 2 * pad;
+
+  const pos = {};
+  let seed = n * 7 + 31;
+  function rand() { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; }
+  for (let i = 1; i <= n; i++) {
+    pos[i] = [pad + rand() * w, pad + rand() * h];
+  }
+
+  const adj = {};
+  for (let i = 1; i <= n; i++) adj[i] = new Set();
+  for (const [a, b] of branches) { adj[a].add(b); adj[b].add(a); }
+
+  const k = Math.sqrt((w * h) / n) * 0.8;
+  const iters = iterations || 300;
+
+  for (let iter = 0; iter < iters; iter++) {
+    const temp = Math.max(0.01, 1 - iter / iters) * k * 2;
+    const disp = {};
+    for (let i = 1; i <= n; i++) disp[i] = [0, 0];
+
+    // Repulsive forces between all pairs
+    for (let i = 1; i <= n; i++) {
+      for (let j = i + 1; j <= n; j++) {
+        let dx = pos[i][0] - pos[j][0];
+        let dy = pos[i][1] - pos[j][1];
+        let dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+        let force = k * k / dist;
+        let fx = dx / dist * force;
+        let fy = dy / dist * force;
+        disp[i][0] += fx; disp[i][1] += fy;
+        disp[j][0] -= fx; disp[j][1] -= fy;
+      }
+    }
+
+    // Attractive forces along edges
+    for (const [a, b] of branches) {
+      let dx = pos[a][0] - pos[b][0];
+      let dy = pos[a][1] - pos[b][1];
+      let dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+      let force = dist * dist / k;
+      let fx = dx / dist * force;
+      let fy = dy / dist * force;
+      disp[a][0] -= fx; disp[a][1] -= fy;
+      disp[b][0] += fx; disp[b][1] += fy;
+    }
+
+    // Apply with temperature cooling
+    for (let i = 1; i <= n; i++) {
+      let dx = disp[i][0], dy = disp[i][1];
+      let dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+      let scale = Math.min(dist, temp) / dist;
+      pos[i][0] = Math.max(pad, Math.min(width - pad, pos[i][0] + dx * scale));
+      pos[i][1] = Math.max(pad, Math.min(height - pad, pos[i][1] + dy * scale));
+    }
+  }
+  return pos;
 }
 
 // =============================================================================
@@ -533,6 +645,7 @@ window.addEventListener('load', () => {
   canvas.addEventListener('click', onCanvasClick);
   canvas.addEventListener('mousemove', onCanvasMove);
   window.addEventListener('resize', resizeCanvas);
+  initState();
   resizeCanvas();
   updateStats();
 });
@@ -549,19 +662,25 @@ function resizeCanvas() {
 }
 
 function computePositions() {
+  const sys = SYSTEMS[currentSystem];
   const w = canvas.width / devicePixelRatio;
   const h = canvas.height / devicePixelRatio;
-  const xs = Object.values(BUS_POS).map(p => p[0]);
-  const ys = Object.values(BUS_POS).map(p => p[1]);
-  const minX = Math.min(...xs), maxX = Math.max(...xs);
-  const minY = Math.min(...ys), maxY = Math.max(...ys);
-  const pad = 60;
-  busPositions = {};
-  for (const [bus, [px, py]] of Object.entries(BUS_POS)) {
-    busPositions[bus] = [
-      pad + (px - minX) / (maxX - minX || 1) * (w - 2*pad),
-      pad + (py - minY) / (maxY - minY || 1) * (h - 2*pad)
-    ];
+
+  if (sys.pos) {
+    const xs = Object.values(sys.pos).map(p => p[0]);
+    const ys = Object.values(sys.pos).map(p => p[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const pad = 60;
+    busPositions = {};
+    for (const [bus, [px, py]] of Object.entries(sys.pos)) {
+      busPositions[bus] = [
+        pad + (px - minX) / (maxX - minX || 1) * (w - 2*pad),
+        pad + (py - minY) / (maxY - minY || 1) * (h - 2*pad)
+      ];
+    }
+  } else {
+    busPositions = forceDirectedLayout(sys.n, sys.branches, w, h, 400);
   }
 }
 
@@ -582,6 +701,8 @@ function showTab(name) {
 // Drawing
 // =============================================================================
 function draw() {
+  const sys = SYSTEMS[currentSystem];
+  const n = sys.n;
   const w = canvas.width / devicePixelRatio;
   const h = canvas.height / devicePixelRatio;
   ctx.clearRect(0, 0, w, h);
@@ -590,8 +711,8 @@ function draw() {
 
   // Draw edges
   ctx.strokeStyle = '#3a4a6c';
-  ctx.lineWidth = 2;
-  for (const [a, b] of BRANCHES) {
+  ctx.lineWidth = n > 30 ? 1 : 2;
+  for (const [a, b] of sys.branches) {
     const pa = busPositions[a], pb = busPositions[b];
     if (!pa || !pb) continue;
     ctx.beginPath();
@@ -601,8 +722,8 @@ function draw() {
   }
 
   // Draw nodes
-  const R = 22;
-  for (let bus = 1; bus <= N; bus++) {
+  const R = n > 40 ? 14 : (n > 20 ? 18 : 22);
+  for (let bus = 1; bus <= n; bus++) {
     const p = busPositions[bus];
     if (!p) continue;
     const isPMU = pmuState[bus];
@@ -633,31 +754,33 @@ function draw() {
     ctx.stroke();
 
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 13px sans-serif';
+    ctx.font = (n > 40 ? 'bold 9px' : (n > 20 ? 'bold 11px' : 'bold 13px')) + ' sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(bus, p[0], p[1]);
   }
 
-  // Mode label
+  // System & mode label
   const mode = document.getElementById('modeSelect').value;
   ctx.font = 'bold 14px sans-serif';
   ctx.fillStyle = 'rgba(233,69,96,0.7)';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
   const modeLabels = { complete: 'Complete (d=0)', depth1: 'Depth-1 (d=1)', depth2: 'Depth-2 (d=2)' };
-  ctx.fillText(modeLabels[mode], 10, 10);
+  ctx.fillText(sys.name + ' \u2014 ' + modeLabels[mode], 10, 10);
 }
 
 // =============================================================================
 // Interaction
 // =============================================================================
 function getBusAt(x, y) {
-  for (let bus = 1; bus <= N; bus++) {
+  const sys = SYSTEMS[currentSystem];
+  const R = sys.n > 40 ? 16 : (sys.n > 20 ? 20 : 28);
+  for (let bus = 1; bus <= sys.n; bus++) {
     const p = busPositions[bus];
     if (!p) continue;
     const dx = x - p[0], dy = y - p[1];
-    if (dx*dx + dy*dy < 28*28) return bus;
+    if (dx*dx + dy*dy < R*R) return bus;
   }
   return null;
 }
@@ -685,7 +808,8 @@ function onCanvasMove(e) {
     draw();
     const tip = document.getElementById('tooltip');
     if (bus) {
-      const neighbors = ADJ[bus];
+      const adj = buildAdj();
+      const neighbors = adj[bus];
       tip.innerHTML = '<strong>Bus ' + bus + '</strong><br>PMU: ' + (pmuState[bus]?'Yes':'No') + '<br>隣接: ' + neighbors.join(', ');
       tip.style.display = 'block';
       tip.style.left = (e.clientX - canvas.parentElement.getBoundingClientRect().left + 15) + 'px';
@@ -699,6 +823,17 @@ function onCanvasMove(e) {
 // =============================================================================
 // Controls
 // =============================================================================
+function onSystemChange() {
+  currentSystem = document.getElementById('systemSelect').value;
+  const sys = SYSTEMS[currentSystem];
+  initState();
+  document.getElementById('statTotal').textContent = sys.n;
+  computePositions();
+  updateStats();
+  draw();
+  log('系統変更: ' + sys.name + ' (' + sys.n + ' buses)');
+}
+
 function onModeChange() {
   const mode = document.getElementById('modeSelect').value;
   const desc = document.getElementById('modeDesc');
@@ -715,27 +850,31 @@ function onModeChange() {
 }
 
 function runOptimal() {
+  const sys = SYSTEMS[currentSystem];
   const mode = document.getElementById('modeSelect').value;
-  const opt = OPTIMAL[mode];
-  for (let i = 1; i <= N; i++) pmuState[i] = false;
+  const opt = sys.optimal[mode];
+  for (let i = 1; i <= sys.n; i++) pmuState[i] = false;
   for (const b of opt) pmuState[b] = true;
   updateStats();
   draw();
-  log('最適配置 (' + mode + '): buses [' + opt.join(', ') + '] = ' + opt.length + ' PMUs');
+  log('最適配置 (' + sys.name + ', ' + mode + '): buses [' + opt.join(', ') + '] = ' + opt.length + ' PMUs');
 }
 
 function clearAll() {
-  for (let i = 1; i <= N; i++) pmuState[i] = false;
+  const sys = SYSTEMS[currentSystem];
+  for (let i = 1; i <= sys.n; i++) pmuState[i] = false;
   updateStats();
   draw();
   log('全PMU撤去');
 }
 
 function updateStats() {
+  const sys = SYSTEMS[currentSystem];
   const { observed, pmuBuses, complete } = checkObservability();
   document.getElementById('statPMU').textContent = pmuBuses.length;
   document.getElementById('statObs').textContent = observed.size;
-  document.getElementById('statRate').textContent = Math.round(observed.size / N * 100) + '%';
+  document.getElementById('statTotal').textContent = sys.n;
+  document.getElementById('statRate').textContent = Math.round(observed.size / sys.n * 100) + '%';
   document.getElementById('statRate').style.color = complete ? 'var(--obs-green)' : 'var(--accent)';
   document.getElementById('pmuList').textContent = pmuBuses.length > 0 ? pmuBuses.join(', ') : 'なし';
 }
