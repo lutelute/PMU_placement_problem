@@ -29,6 +29,8 @@ PAPERS = {
     "paper13": "implementations.paper13_manousakis2012.verify",
     "paper14": "implementations.paper14_ahmed2022.verify",
     "paper15": "implementations.paper15_johnson2020.verify",
+    # Advanced: real distribution system
+    "crest126": "implementations.advanced_crest126.verify",
 }
 
 

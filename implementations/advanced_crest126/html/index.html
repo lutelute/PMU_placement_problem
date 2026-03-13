@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CREST 126フィーダ配電系統 — PMU最適配置</title>
+<style>
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0f0f23;
+  color: #c9d1d9;
+  min-height: 100vh;
+}
+
+/* ===== Back Link ===== */
+.back-link {
+  display: inline-block;
+  padding: 12px 20px;
+  color: #8b949e;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+.back-link:hover { color: #e94560; }
+
+/* ===== Header ===== */
+.header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 40px 20px 0;
+  text-align: center;
+  border-bottom: 3px solid #e94560;
+}
+.header h1 {
+  font-size: 26px;
+  color: #ffffff;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+.header .subtitle {
+  font-size: 15px;
+  color: #8b949e;
+  margin-bottom: 24px;
+}
+
+/* ===== Tabs ===== */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+}
+.tab-btn {
+  padding: 12px 32px;
+  background: transparent;
+  border: none;
+  color: #8b949e;
+  font-size: 15px;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -3px;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.tab-btn:hover { color: #c9d1d9; }
+.tab-btn.active {
+  color: #e94560;
+  border-bottom-color: #e94560;
+  background: rgba(233, 69, 96, 0.05);
+}
+
+/* ===== Tab Content ===== */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ===== Explanation (Paper Style) ===== */
+.explanation {
+  max-width: 780px;
+  margin: 40px auto;
+  background: #ffffff;
+  color: #1a1a1a;
+  padding: 60px 64px;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 30px rgba(0,0,0,0.05);
+  font-family: Georgia, 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  font-size: 15.5px;
+  line-height: 2.0;
+}
+.explanation h2 {
+  font-size: 20px;
+  color: #1a1a2e;
+  margin: 48px 0 20px;
+  padding-left: 16px;
+  border-left: 4px solid #e94560;
+  line-height: 1.4;
+}
+.explanation h2:first-child { margin-top: 0; }
+.explanation p { margin-bottom: 16px; text-align: justify; }
+.explanation ul, .explanation ol {
+  margin: 12px 0 16px 24px;
+}
+.explanation li { margin-bottom: 6px; }
+
+.math-block {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 16px 24px;
+  margin: 20px 0;
+  font-family: 'Cambria Math', 'Latin Modern Math', Georgia, serif;
+  font-size: 16px;
+  text-align: center;
+  overflow-x: auto;
+}
+
+.highlight-box {
+  background: linear-gradient(135deg, #fff5f5 0%, #fff0f3 100%);
+  border-left: 4px solid #e94560;
+  padding: 20px 24px;
+  margin: 24px 0;
+  border-radius: 0 4px 4px 0;
+}
+.highlight-box strong { color: #e94560; }
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 14px;
+}
+table.data-table th {
+  background: #1a1a2e;
+  color: #ffffff;
+  padding: 10px 14px;
+  text-align: center;
+  font-weight: 600;
+}
+table.data-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #e9ecef;
+  text-align: center;
+}
+table.data-table tr:nth-child(even) td { background: #f8f9fa; }
+
+/* ===== Demo Layout ===== */
+.demo-container {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: 1fr auto;
+  height: calc(100vh - 160px);
+  min-height: 600px;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+  background: #1a1a2e;
+  padding: 20px;
+  border-right: 1px solid #2a2a4a;
+  overflow-y: auto;
+  grid-row: 1 / 3;
+}
+.sidebar h3 {
+  font-size: 13px;
+  color: #e94560;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 16px;
+}
+.control-group {
+  margin-bottom: 20px;
+}
+.control-group label {
+  display: block;
+  font-size: 13px;
+  color: #8b949e;
+  margin-bottom: 6px;
+}
+.control-group select, .control-group input[type="range"] {
+  width: 100%;
+  padding: 8px 10px;
+  background: #0f0f23;
+  border: 1px solid #2a2a4a;
+  color: #c9d1d9;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.control-group select:focus {
+  outline: none;
+  border-color: #e94560;
+}
+.btn-run {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #e94560, #c23152);
+  border: none;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.2s;
+  font-family: inherit;
+  margin-bottom: 8px;
+}
+.btn-run:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(233,69,96,0.3); }
+.btn-run:active { transform: translateY(0); }
+.btn-run:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-reset {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid #2a2a4a;
+  color: #8b949e;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  margin-bottom: 20px;
+}
+.btn-reset:hover { border-color: #8b949e; color: #c9d1d9; }
+
+.progress-bar-container {
+  width: 100%;
+  height: 4px;
+  background: #0f0f23;
+  border-radius: 2px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  display: none;
+}
+.progress-bar-container.visible { display: block; }
+.progress-bar {
+  height: 100%;
+  background: #e94560;
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.1s;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 16px;
+  min-height: 16px;
+}
+
+.results-panel h3 { margin-top: 8px; }
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #2a2a4a;
+  font-size: 13px;
+}
+.result-row .label { color: #8b949e; }
+.result-row .value { color: #c9d1d9; font-weight: 600; font-variant-numeric: tabular-nums; }
+.result-row .value.highlight { color: #e94560; }
+
+/* ===== Canvas Area ===== */
+.canvas-area {
+  background: #0a0a1a;
+  position: relative;
+  overflow: hidden;
+}
+#networkCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.canvas-info {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  font-size: 12px;
+  color: #555;
+  pointer-events: none;
+}
+.canvas-legend {
+  position: absolute;
+  bottom: 10px;
+  left: 14px;
+  font-size: 11px;
+  color: #8b949e;
+  display: flex;
+  gap: 16px;
+  pointer-events: none;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ===== Stats bar ===== */
+.stats-bar {
+  background: #1a1a2e;
+  padding: 8px 20px;
+  border-top: 1px solid #2a2a4a;
+  display: flex;
+  gap: 24px;
+  font-size: 12px;
+  color: #8b949e;
+  overflow-x: auto;
+}
+.stats-bar span { white-space: nowrap; }
+.stats-bar .stat-val { color: #c9d1d9; font-weight: 600; }
+
+/* ===== Results tab ===== */
+.results-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+.results-card {
+  background: #1a1a2e;
+  border: 1px solid #2a2a4a;
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.results-card h3 {
+  font-size: 16px;
+  color: #fff;
+  margin-bottom: 16px;
+}
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.results-table th {
+  text-align: left;
+  padding: 10px 12px;
+  color: #8b949e;
+  border-bottom: 2px solid #2a2a4a;
+  font-weight: 600;
+}
+.results-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #2a2a4a;
+}
+.results-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.results-table .check { color: #27ae60; }
+.results-table .best { color: #e94560; font-weight: 600; }
+
+/* ===== Feature cards ===== */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.feature-card {
+  background: #16213e;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  padding: 20px;
+}
+.feature-card h4 {
+  font-size: 14px;
+  color: #e94560;
+  margin-bottom: 8px;
+}
+.feature-card p {
+  font-size: 13px;
+  color: #8b949e;
+  line-height: 1.6;
+}
+.feature-card .stat {
+  font-size: 28px;
+  color: #fff;
+  font-weight: 700;
+  margin: 8px 0;
+}
+
+@media (max-width: 768px) {
+  .demo-container { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+  .sidebar { grid-row: auto; max-height: 300px; }
+  .explanation { padding: 30px 20px; }
+}
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../../../index.html">&larr; 論文一覧に戻る</a>
+
+<div class="header">
+  <h1>CREST 126フィーダ配電系統 — PMU最適配置</h1>
+  <div class="subtitle">東京都市圏 6.6kV 実配電系統モデル（2,532バス / 3変電所）</div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('explanation')">解説</button>
+    <button class="tab-btn" onclick="switchTab('demo')">デモ</button>
+    <button class="tab-btn" onclick="switchTab('results')">結果</button>
+  </div>
+</div>
+
+<!-- ============ EXPLANATION TAB ============ -->
+<div id="tab-explanation" class="tab-content active">
+<div class="explanation">
+
+<h2>CREST 126フィーダ配電系統モデル</h2>
+<p>
+  CREST（Center for Research on Energy Systems and Technologies）126フィーダモデルは、
+  東京都市圏の実在する6.6kV高圧配電系統をモデル化したものである。
+  3つの変電所（F1, F2, F3）から多数のフィーダが分岐し、
+  柱上変圧器や高圧需要家に電力を供給する放射状のネットワーク構造を持つ。
+</p>
+
+<table class="data-table">
+  <tr><th>項目</th><th>値</th></tr>
+  <tr><td>総バス数</td><td>2,532</td></tr>
+  <tr><td>ブランチ数</td><td>2,529（放射状スパニングツリー）</td></tr>
+  <tr><td>変電所数</td><td>3（F1HN0, F2HN0, F3HN0）</td></tr>
+  <tr><td>柱上変圧器</td><td>1,818台（各30 kW, pf=0.9）</td></tr>
+  <tr><td>高圧需要家</td><td>186件（各100 kW）</td></tr>
+  <tr><td>公称電圧</td><td>6.6 kV</td></tr>
+  <tr><td>基準容量</td><td>10 MVA</td></tr>
+  <tr><td>座標系</td><td>緯度35.63°–35.67°N / 経度139.57°–139.61°E</td></tr>
+</table>
+
+<h2>配電系統におけるPMU配置の意義</h2>
+<p>
+  PMU（Phasor Measurement Unit）は従来、送電系統の状態推定や動揺監視に用いられてきたが、
+  分散電源やEVの大量導入に伴い、配電系統への適用が注目されている。
+  配電系統特有の課題として以下がある：
+</p>
+<ul>
+  <li><strong>放射状トポロジ</strong>：メッシュ構造の送電系統と異なり、分岐が多く末端ノードが多い</li>
+  <li><strong>大規模性</strong>：フィーダ1本あたり数百ノードに及び、系統全体では数千ノード規模となる</li>
+  <li><strong>ゼロ注入バスの多さ</strong>：負荷も発電もない中継ノード（電柱等）が多数存在</li>
+  <li><strong>コスト制約</strong>：送電系統に比べ設置可能なPMU数が限られる</li>
+</ul>
+
+<h2>最適化問題の定式化</h2>
+<p>
+  PMU最適配置問題は以下の二値整数線形計画問題（BILP）として定式化される：
+</p>
+<div class="math-block">
+  min &Sigma;<sub>i=1</sub><sup>N</sup> x<sub>i</sub><br>
+  s.t. <strong>f</strong> &middot; <strong>x</strong> &ge; <strong>1</strong><br>
+  x<sub>i</sub> &isin; {0, 1}, &nbsp; i = 1, ..., N
+</div>
+<p>
+  ここで <em>N</em> = 2,532（バス数）、<strong>f</strong> は接続行列（隣接行列 + 単位行列）、
+  <em>x<sub>i</sub></em> = 1 はバス <em>i</em> にPMUを配置することを意味する。
+  ゼロ注入バス（ZIB）の効果を考慮する場合、接続行列を拡張して
+  KCLによる観測伝播を線形制約として組み込む。
+</p>
+
+<h2>解法アルゴリズム</h2>
+<p>
+  本デモでは複数の手法でPMU配置を求め、比較を行う：
+</p>
+<ol>
+  <li><strong>BILP（ZIBなし）</strong>：基本的な整数線形計画法。HiGHSソルバーで厳密解を得る。
+      CREST系統では<strong>880台</strong>のPMUが最適解となる。</li>
+  <li><strong>BILP + ZIB</strong>：ゼロ注入バスの効果を線形緩和で取り込む。
+      <strong>726台</strong>に削減されるが、線形緩和はZIB効果を過大評価するため、
+      Baldwin Rules 1-3による厳密チェックでは一部未観測が残る場合がある。</li>
+  <li><strong>貪欲法（Greedy）</strong>：Baldwin (1993) のグラフ理論的初期配置アルゴリズム。
+      未観測領域で最も接続数の多いバスに順次PMUを配置する。
+      CREST系統では<strong>887台</strong>（最適解の+0.8%）。</li>
+</ol>
+
+<div class="highlight-box">
+  <strong>実系統への適用のポイント</strong><br>
+  2,532バスのCREST系統に対し、BILP（ZIBなし）で<strong>880台</strong>のPMUが最適となる
+  （PMU/バス比 = 0.348）。525個のゼロ注入バスを線形緩和で考慮すると726台に削減されるが、
+  Baldwin Rules 1-3による厳密観測性チェックでは171バスが未観測となる。
+  これはZIBの観測伝播の逐次的性質を線形制約が完全に捉えきれないためであり、
+  大規模配電系統における最適化手法の課題を示している。
+  貪欲法は887台で準最適解を安定的に得られ、実用的な配置戦略として有効である。
+</div>
+
+<h2>地理的可視化</h2>
+<p>
+  CRESTモデルの各ノードには実際の緯度・経度座標が付与されているため、
+  デモタブでは東京都市圏の実際の地理的レイアウト上にPMU配置を可視化する。
+  赤色のノードがPMU設置バス、緑色が観測済みバス（PMU隣接）を表す。
+  変電所はダイヤモンドマーカーで示される。
+</p>
+
+</div>
+</div>
+
+<!-- ============ DEMO TAB ============ -->
+<div id="tab-demo" class="tab-content">
+<div class="demo-container">
+  <div class="sidebar">
+    <h3>PMU配置設定</h3>
+
+    <div class="control-group">
+      <label>解法手法</label>
+      <select id="solverSelect">
+        <option value="bilp">BILP（ZIBなし）</option>
+        <option value="bilp_zib" selected>BILP + ZIB</option>
+        <option value="greedy">貪欲法（Greedy）</option>
+        <option value="greedy_zib">貪欲法 + ZIB</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>フィーダ表示フィルタ</label>
+      <select id="feederFilter">
+        <option value="all">全フィーダ表示</option>
+        <option value="F1">F1フィーダのみ</option>
+        <option value="F2">F2フィーダのみ</option>
+        <option value="F3">F3フィーダのみ</option>
+      </select>
+    </div>
+
+    <button class="btn-run" id="btnRun" onclick="runSolver()">PMU配置を最適化</button>
+    <button class="btn-reset" onclick="resetVisualization()">リセット</button>
+
+    <div class="progress-bar-container" id="progressBarContainer">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="progress-text" id="progressText"></div>
+
+    <div class="results-panel">
+      <h3>最適化結果</h3>
+      <div class="result-row"><span class="label">バス数</span><span class="value" id="rBuses">—</span></div>
+      <div class="result-row"><span class="label">ブランチ数</span><span class="value" id="rBranches">—</span></div>
+      <div class="result-row"><span class="label">ZIB数</span><span class="value" id="rZIBs">—</span></div>
+      <div class="result-row"><span class="label">PMU数</span><span class="value highlight" id="rPMUs">—</span></div>
+      <div class="result-row"><span class="label">PMU/バス比</span><span class="value" id="rRatio">—</span></div>
+      <div class="result-row"><span class="label">観測率</span><span class="value" id="rObsRate">—</span></div>
+      <div class="result-row"><span class="label">計算時間</span><span class="value" id="rTime">—</span></div>
+    </div>
+  </div>
+
+  <div class="canvas-area">
+    <canvas id="networkCanvas"></canvas>
+    <div class="canvas-info" id="canvasInfo">ノードにマウスオーバーで詳細表示</div>
+    <div class="canvas-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#e94560;"></div>PMU設置</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#27ae60;"></div>観測済</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#555;"></div>未観測</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f39c12;border-radius:2px;transform:rotate(45deg);"></div>変電所</div>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="statsBar">
+    <span>データ読込中...</span>
+  </div>
+</div>
+</div>
+
+<!-- ============ RESULTS TAB ============ -->
+<div id="tab-results" class="tab-content">
+<div class="results-container">
+
+  <div class="results-card">
+    <h3>CREST 126フィーダ系統 — 系統統計</h3>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>総バス数</h4>
+        <div class="stat">2,532</div>
+        <p>東京都市圏6.6kV配電系統の全ノード数</p>
+      </div>
+      <div class="feature-card">
+        <h4>ゼロ注入バス</h4>
+        <div class="stat">525</div>
+        <p>負荷も発電もない中継ノード（電柱等）</p>
+      </div>
+      <div class="feature-card">
+        <h4>負荷バス</h4>
+        <div class="stat">2,004</div>
+        <p>柱上変圧器1,818台 + 高圧需要家186件</p>
+      </div>
+      <div class="feature-card">
+        <h4>変電所</h4>
+        <div class="stat">3</div>
+        <p>F1HN0, F2HN0, F3HN0</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="results-card">
+    <h3>PMU最適配置結果の比較</h3>
+    <table class="results-table" id="comparisonTable">
+      <thead>
+        <tr>
+          <th>手法</th>
+          <th class="num">PMU数</th>
+          <th class="num">PMU/バス比</th>
+          <th class="num">削減率</th>
+          <th>観測性</th>
+          <th class="num">計算時間</th>
+        </tr>
+      </thead>
+      <tbody id="comparisonBody">
+        <tr><td colspan="6" style="color:#8b949e;text-align:center;">デモタブで各手法を実行すると結果が表示されます</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="results-card">
+    <h3>配電系統 vs 送電系統のPMU配置比較</h3>
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>系統</th>
+          <th class="num">バス数</th>
+          <th class="num">PMU数<br>(ZIBなし)</th>
+          <th class="num">PMU/バス比</th>
+          <th>トポロジ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>IEEE 14-Bus</td>
+          <td class="num">14</td>
+          <td class="num">4</td>
+          <td class="num">0.286</td>
+          <td>メッシュ（送電）</td>
+        </tr>
+        <tr>
+          <td>IEEE 30-Bus</td>
+          <td class="num">30</td>
+          <td class="num">10</td>
+          <td class="num">0.333</td>
+          <td>メッシュ（送電）</td>
+        </tr>
+        <tr>
+          <td>IEEE 118-Bus</td>
+          <td class="num">118</td>
+          <td class="num">32</td>
+          <td class="num">0.271</td>
+          <td>メッシュ（送電）</td>
+        </tr>
+        <tr style="background:rgba(233,69,96,0.08);">
+          <td style="color:#e94560;font-weight:600;">CREST 126-Feeder</td>
+          <td class="num" style="color:#e94560;font-weight:600;">2,532</td>
+          <td class="num" style="color:#e94560;font-weight:600;">880</td>
+          <td class="num" style="color:#e94560;font-weight:600;">0.348</td>
+          <td style="color:#e94560;">放射状（配電）</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:16px;font-size:13px;color:#8b949e;line-height:1.6;">
+      配電系統では放射状構造のため、末端ノード付近でPMU密度が高くなる傾向がある。
+      ゼロ注入バスの活用により、送電系統以上のPMU削減効果が期待できる。
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ===================== TAB SWITCHING =====================
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['explanation','demo','results'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'demo' && !networkData) loadNetworkData();
+}
+
+// ===================== NETWORK DATA =====================
+let networkData = null;
+let pmuResult = null;
+let comparisonResults = {};
+let canvas, ctx;
+
+async function loadNetworkData() {
+  const resp = await fetch('../data/crest126_topology.json');
+  networkData = await resp.json();
+  canvas = document.getElementById('networkCanvas');
+  ctx = canvas.getContext('2d');
+
+  document.getElementById('rBuses').textContent = networkData.n_buses.toLocaleString();
+  document.getElementById('rBranches').textContent = networkData.branches.length.toLocaleString();
+  document.getElementById('rZIBs').textContent = networkData.zero_injection_buses.length.toLocaleString();
+
+  updateStatsBar();
+  drawNetwork();
+}
+
+function updateStatsBar() {
+  if (!networkData) return;
+  const bar = document.getElementById('statsBar');
+  bar.innerHTML = `
+    <span>バス: <span class="stat-val">${networkData.n_buses.toLocaleString()}</span></span>
+    <span>ブランチ: <span class="stat-val">${networkData.branches.length.toLocaleString()}</span></span>
+    <span>ZIB: <span class="stat-val">${networkData.zero_injection_buses.length.toLocaleString()}</span></span>
+    <span>負荷: <span class="stat-val">${networkData.n_load_buses.toLocaleString()}</span></span>
+    <span>変電所: <span class="stat-val">${networkData.substation_buses.length}</span></span>
+    ${pmuResult ? `<span>PMU: <span class="stat-val" style="color:#e94560;">${pmuResult.n_pmus}</span></span>` : ''}
+  `;
+}
+
+// ===================== DRAWING =====================
+function getProjection() {
+  const coords = networkData.coordinates;
+  let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+
+  const filter = document.getElementById('feederFilter').value;
+  const filtered = filter === 'all' ? coords :
+    coords.filter(c => c.name.startsWith(filter));
+
+  for (const c of filtered) {
+    if (c.lat < minLat) minLat = c.lat;
+    if (c.lat > maxLat) maxLat = c.lat;
+    if (c.lon < minLon) minLon = c.lon;
+    if (c.lon > maxLon) maxLon = c.lon;
+  }
+
+  const pad = 40;
+  const w = canvas.width - 2 * pad;
+  const h = canvas.height - 2 * pad;
+  const latRange = maxLat - minLat || 0.001;
+  const lonRange = maxLon - minLon || 0.001;
+  const scale = Math.min(w / lonRange, h / latRange);
+
+  return {
+    project: (lat, lon) => {
+      const x = pad + (lon - minLon) * scale;
+      const y = pad + (maxLat - lat) * scale;
+      return [x, y];
+    },
+    filtered: new Set(filtered.map(c => c.id)),
+    minLat, maxLat, minLon, maxLon,
+  };
+}
+
+function drawNetwork() {
+  if (!networkData || !canvas) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, rect.width, rect.height);
+
+  const proj = getProjection();
+  const coordMap = {};
+  for (const c of networkData.coordinates) {
+    if (proj.filtered.has(c.id)) {
+      coordMap[c.id] = proj.project(c.lat, c.lon);
+    }
+  }
+
+  const pmuSet = pmuResult ? new Set(pmuResult.pmu_buses) : new Set();
+  const observedSet = pmuResult ? new Set(pmuResult.observed) : new Set();
+  const substSet = new Set(networkData.substation_buses);
+
+  // Draw branches
+  ctx.strokeStyle = 'rgba(60, 60, 100, 0.3)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  for (const [f, t] of networkData.branches) {
+    const fc = coordMap[f], tc = coordMap[t];
+    if (fc && tc) {
+      ctx.moveTo(fc[0], fc[1]);
+      ctx.lineTo(tc[0], tc[1]);
+    }
+  }
+  ctx.stroke();
+
+  // Draw nodes
+  const r = networkData.n_buses > 1000 ? 1.5 : 3;
+  for (const c of networkData.coordinates) {
+    if (!proj.filtered.has(c.id)) continue;
+    const [x, y] = coordMap[c.id];
+    const isPMU = pmuSet.has(c.id);
+    const isObs = observedSet.has(c.id);
+    const isSubst = substSet.has(c.id);
+
+    if (isSubst) {
+      // Diamond marker for substations
+      ctx.fillStyle = '#f39c12';
+      ctx.beginPath();
+      ctx.moveTo(x, y - 5);
+      ctx.lineTo(x + 5, y);
+      ctx.lineTo(x, y + 5);
+      ctx.lineTo(x - 5, y);
+      ctx.closePath();
+      ctx.fill();
+    } else if (isPMU) {
+      ctx.fillStyle = '#e94560';
+      ctx.beginPath();
+      ctx.arc(x, y, r + 1, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (isObs) {
+      ctx.fillStyle = '#27ae60';
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#444';
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Title overlay
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.font = '12px sans-serif';
+  ctx.fillText(`CREST 126-Feeder (${networkData.n_buses} buses)`, 10, 20);
+}
+
+window.addEventListener('resize', drawNetwork);
+
+// ===================== SOLVERS (JS Implementation) =====================
+
+function buildAdjacency(nBuses, branches) {
+  const adj = new Array(nBuses + 1);
+  for (let i = 0; i <= nBuses; i++) adj[i] = [];
+  for (const [f, t] of branches) {
+    adj[f].push(t);
+    adj[t].push(f);
+  }
+  return adj;
+}
+
+function checkObservability(nBuses, branches, pmuBuses, zibs) {
+  const adj = buildAdjacency(nBuses, branches);
+  const zibSet = new Set(zibs);
+  const observed = new Set();
+  const knownCurrents = new Set();
+
+  function brKey(a, b) { return a < b ? a + ',' + b : b + ',' + a; }
+
+  // Rule 1
+  for (const p of pmuBuses) {
+    observed.add(p);
+    for (const nb of adj[p]) {
+      observed.add(nb);
+      knownCurrents.add(brKey(p, nb));
+    }
+  }
+
+  // Rules 2-3 iterative
+  let changed = true;
+  while (changed) {
+    changed = false;
+    // Rule 2
+    for (const [i, j] of branches) {
+      const key = brKey(i, j);
+      if (!knownCurrents.has(key) && observed.has(i) && observed.has(j)) {
+        knownCurrents.add(key);
+        changed = true;
+      }
+    }
+    // Rule 3 (ZIB)
+    for (const zb of zibSet) {
+      if (!observed.has(zb)) continue;
+      const incident = adj[zb].map(nb => ({ key: brKey(zb, nb), far: nb }));
+      const unknown = incident.filter(e => !knownCurrents.has(e.key));
+      if (unknown.length === 1) {
+        knownCurrents.add(unknown[0].key);
+        if (!observed.has(unknown[0].far)) {
+          observed.add(unknown[0].far);
+          changed = true;
+        }
+      }
+    }
+  }
+
+  return {
+    observable: observed.size >= nBuses,
+    observed: [...observed],
+    unobserved: Array.from({length: nBuses}, (_, i) => i + 1).filter(b => !observed.has(b)),
+  };
+}
+
+function solveGreedy(nBuses, branches, zibs) {
+  const adj = buildAdjacency(nBuses, branches);
+  const pmuBuses = [];
+
+  while (true) {
+    const result = checkObservability(nBuses, branches, pmuBuses, zibs);
+    if (result.observable) break;
+
+    const unobsSet = new Set(result.unobserved);
+    let bestBus = -1, bestCount = -1;
+    for (const bus of result.unobserved) {
+      let count = 0;
+      for (const nb of adj[bus]) {
+        if (unobsSet.has(nb)) count++;
+      }
+      if (count > bestCount) {
+        bestCount = count;
+        bestBus = bus;
+      }
+    }
+    pmuBuses.push(bestBus);
+  }
+  return pmuBuses.sort((a, b) => a - b);
+}
+
+function solveBILP(nBuses, branches, zibs, useZib) {
+  // Build connectivity matrix as sparse representation
+  const adj = buildAdjacency(nBuses, branches);
+
+  // For each bus, compute degree + 1 (self)
+  const degree = new Array(nBuses + 1).fill(0);
+  for (let i = 1; i <= nBuses; i++) degree[i] = adj[i].length + 1;
+
+  // Greedy BILP approximation: iteratively select bus that covers most uncovered
+  const covered = new Uint8Array(nBuses + 1); // coverage count per bus
+  const pmuBuses = [];
+  const zibSet = new Set(useZib ? zibs : []);
+
+  // Build augmented adjacency for ZIB
+  const augAdj = new Array(nBuses + 1);
+  for (let i = 0; i <= nBuses; i++) augAdj[i] = new Set(adj[i]);
+  // Add self
+  for (let i = 1; i <= nBuses; i++) augAdj[i].add(i);
+
+  if (useZib) {
+    for (const z of zibs) {
+      const neighbors = adj[z];
+      for (const nb1 of neighbors) {
+        for (const nb2 of neighbors) {
+          if (nb1 !== nb2) {
+            augAdj[nb1].add(nb2);
+          }
+        }
+      }
+    }
+  }
+
+  // Check if all buses are covered
+  function allCovered() {
+    for (let i = 1; i <= nBuses; i++) {
+      if (covered[i] === 0) return false;
+    }
+    return true;
+  }
+
+  // Greedy set cover
+  while (!allCovered()) {
+    let bestBus = -1, bestGain = -1;
+    for (let i = 1; i <= nBuses; i++) {
+      if (covered[i] > 0 && augAdj[i].size === 0) continue;
+      let gain = 0;
+      for (const nb of augAdj[i]) {
+        if (nb >= 1 && nb <= nBuses && covered[nb] === 0) gain++;
+      }
+      if (gain > bestGain) {
+        bestGain = gain;
+        bestBus = i;
+      }
+    }
+    if (bestBus === -1) break;
+    pmuBuses.push(bestBus);
+    for (const nb of augAdj[bestBus]) {
+      if (nb >= 1 && nb <= nBuses) covered[nb] = 1;
+    }
+  }
+
+  return pmuBuses.sort((a, b) => a - b);
+}
+
+// ===================== SOLVER RUNNER =====================
+async function runSolver() {
+  if (!networkData) return;
+  const btn = document.getElementById('btnRun');
+  btn.disabled = true;
+
+  const method = document.getElementById('solverSelect').value;
+  const progContainer = document.getElementById('progressBarContainer');
+  const progBar = document.getElementById('progressBar');
+  const progText = document.getElementById('progressText');
+  progContainer.classList.add('visible');
+  progBar.style.width = '10%';
+  progText.textContent = '最適化実行中...';
+
+  const n = networkData.n_buses;
+  const branches = networkData.branches;
+  const zibs = networkData.zero_injection_buses;
+
+  // Use requestAnimationFrame to keep UI responsive
+  await new Promise(r => setTimeout(r, 50));
+
+  const t0 = performance.now();
+  let pmuBuses;
+
+  if (method === 'greedy' || method === 'greedy_zib') {
+    progText.textContent = '貪欲法で配置中...';
+    progBar.style.width = '30%';
+    await new Promise(r => setTimeout(r, 20));
+    pmuBuses = solveGreedy(n, branches, method === 'greedy_zib' ? zibs : []);
+  } else {
+    progText.textContent = 'BILP近似で最適化中...';
+    progBar.style.width = '30%';
+    await new Promise(r => setTimeout(r, 20));
+    const useZib = method === 'bilp_zib';
+    pmuBuses = solveBILP(n, branches, zibs, useZib);
+  }
+
+  progBar.style.width = '70%';
+  progText.textContent = '観測性を検証中...';
+  await new Promise(r => setTimeout(r, 20));
+
+  const useZibForCheck = (method === 'bilp_zib' || method === 'greedy_zib');
+  const obs = checkObservability(n, branches, pmuBuses, useZibForCheck ? zibs : []);
+  const elapsed = performance.now() - t0;
+
+  progBar.style.width = '100%';
+
+  pmuResult = {
+    n_pmus: pmuBuses.length,
+    pmu_buses: pmuBuses,
+    observed: obs.observed,
+    unobserved: obs.unobserved,
+    observable: obs.observable,
+    method: method,
+    time: elapsed,
+  };
+
+  // Update sidebar results
+  document.getElementById('rPMUs').textContent = pmuBuses.length.toLocaleString();
+  document.getElementById('rRatio').textContent = (pmuBuses.length / n).toFixed(4);
+  document.getElementById('rObsRate').textContent =
+    obs.observable ? '100%' : (obs.observed.length / n * 100).toFixed(1) + '%';
+  document.getElementById('rTime').textContent = (elapsed / 1000).toFixed(2) + 's';
+
+  // Save to comparison
+  const methodNames = {
+    bilp: 'BILP (ZIBなし)',
+    bilp_zib: 'BILP + ZIB',
+    greedy: '貪欲法 (ZIBなし)',
+    greedy_zib: '貪欲法 + ZIB',
+  };
+  comparisonResults[method] = {
+    name: methodNames[method],
+    n_pmus: pmuBuses.length,
+    ratio: (pmuBuses.length / n).toFixed(4),
+    observable: obs.observable,
+    time: elapsed,
+  };
+  updateComparisonTable();
+
+  updateStatsBar();
+  drawNetwork();
+
+  progText.textContent = `完了: ${pmuBuses.length} PMU (${(elapsed/1000).toFixed(2)}s)`;
+  btn.disabled = false;
+}
+
+function updateComparisonTable() {
+  const tbody = document.getElementById('comparisonBody');
+  const keys = Object.keys(comparisonResults);
+  if (keys.length === 0) return;
+
+  const minPMU = Math.min(...keys.map(k => comparisonResults[k].n_pmus));
+
+  tbody.innerHTML = keys.map(k => {
+    const r = comparisonResults[k];
+    const reduction = keys.includes('bilp') && k !== 'bilp' ?
+      ((1 - r.n_pmus / comparisonResults['bilp'].n_pmus) * 100).toFixed(1) + '%' : '—';
+    const isBest = r.n_pmus === minPMU;
+    return `<tr>
+      <td>${r.name}</td>
+      <td class="num ${isBest ? 'best' : ''}">${r.n_pmus.toLocaleString()}</td>
+      <td class="num">${r.ratio}</td>
+      <td class="num">${reduction}</td>
+      <td class="check">${r.observable ? '&#10003; 完全観測' : '&#10007; 未完全'}</td>
+      <td class="num">${(r.time / 1000).toFixed(2)}s</td>
+    </tr>`;
+  }).join('');
+}
+
+function resetVisualization() {
+  pmuResult = null;
+  document.getElementById('rPMUs').textContent = '—';
+  document.getElementById('rRatio').textContent = '—';
+  document.getElementById('rObsRate').textContent = '—';
+  document.getElementById('rTime').textContent = '—';
+  document.getElementById('progressBarContainer').classList.remove('visible');
+  document.getElementById('progressText').textContent = '';
+  updateStatsBar();
+  drawNetwork();
+}
+
+// Feeder filter change
+document.getElementById('feederFilter').addEventListener('change', drawNetwork);
+
+// Tooltip on hover
+document.getElementById('networkCanvas').addEventListener('mousemove', function(e) {
+  if (!networkData || !pmuResult) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const proj = getProjection();
+  const pmuSet = new Set(pmuResult.pmu_buses);
+  const substSet = new Set(networkData.substation_buses);
+
+  let closest = null, minDist = 15;
+  for (const c of networkData.coordinates) {
+    if (!proj.filtered.has(c.id)) continue;
+    const [x, y] = proj.project(c.lat, c.lon);
+    const dist = Math.sqrt((x - mx) ** 2 + (y - my) ** 2);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = c;
+    }
+  }
+
+  const info = document.getElementById('canvasInfo');
+  if (closest) {
+    const isPMU = pmuSet.has(closest.id);
+    const isSubst = substSet.has(closest.id);
+    const status = isPMU ? 'PMU設置' : isSubst ? '変電所' :
+      pmuResult.observed.includes(closest.id) ? '観測済' : '未観測';
+    info.style.color = '#c9d1d9';
+    info.textContent = `${closest.name} (Bus ${closest.id}) — ${status}`;
+  } else {
+    info.style.color = '#555';
+    info.textContent = 'ノードにマウスオーバーで詳細表示';
+  }
+});
+</script>
+</body>
+</html>
