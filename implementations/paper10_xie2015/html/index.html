@@ -482,6 +482,7 @@ canvas {
   .stats-panel { width: 100%; }
 }
 </style>
+<script src="../../../common/js/crest126_data.js"></script>
 </head>
 <body>
 
@@ -630,7 +631,8 @@ Q = A<sup>T</sup> &times; A
     <select id="systemSelect" onchange="changeSystem()">
       <option value="ieee14">IEEE 14-Bus</option>
       <option value="ieee30">IEEE 30-Bus</option>
-    </select>
+            <option value="CREST126">CREST 126-Feeder (2,532 buses)</option>
+      </select>
 
     <div class="method-toggle">
       <button id="btn-bilp" class="active" onclick="setMethod('bilp')">BILP最適解</button>
@@ -703,6 +705,21 @@ const IEEE30 = {
   xie: [2,3,6,10,11,12,15,19,25,27]
 };
 
+// CREST126 system (loaded from shared data file)
+let CREST126 = null;
+if (typeof CREST126_SYSTEM !== 'undefined') {
+  CREST126 = {
+    name: CREST126_SYSTEM.name,
+    buses: CREST126_SYSTEM.n,
+    branches: CREST126_SYSTEM.branches,
+    zibs: CREST126_SYSTEM.zibs || [],
+    pos: CREST126_SYSTEM.pos || null,
+    bilp: [],  // computed at runtime
+    xie: [],   // computed at runtime
+  };
+}
+
+
 // ============================================================
 // State
 // ============================================================
@@ -712,6 +729,13 @@ let pmuBuses = new Set();
 let systemData = null;
 let positions = {};
 let animating = false;
+
+function getSystemData() {
+  if (currentSystem === 'ieee14') return IEEE14;
+  if (currentSystem === 'ieee30') return IEEE30;
+  if (currentSystem === 'CREST126') return CREST126;
+  return IEEE14;
+}
 
 // ============================================================
 // Force-directed layout for IEEE 30
@@ -830,36 +854,37 @@ function getObservedBuses(pmus, adj) {
 // Display Q matrix
 // ============================================================
 function displayQMatrix() {
-  const data = currentSystem === 'ieee14' ? IEEE14 : IEEE30;
-  const Q = computeQ(data.buses, data.branches);
+  const data = getSystemData();
   const el = document.getElementById('q-matrix-display');
-  if (data.buses <= 14) {
-    // Full diagonal display
-    let lines = [];
-    lines.push('Bus  Degree  Adjacent');
-    lines.push('---  ------  --------');
-    for (let i = 0; i < data.buses; i++) {
-      const neighbors = [];
-      for (let j = 0; j < data.buses; j++) {
-        if (j !== i && Q[i][j] !== 0) neighbors.push(j + 1);
-      }
-      lines.push(`${String(i+1).padStart(3)}  ${String(Q[i][i]).padStart(6)}  {${neighbors.join(',')}}`);
+
+  if (data.buses > 200) {
+    // For large systems, show degree distribution summary instead
+    const adj = getAdjacency(data.buses, data.branches);
+    const degrees = {};
+    for (let i = 1; i <= data.buses; i++) {
+      const d = adj[i].size;
+      degrees[d] = (degrees[d] || 0) + 1;
     }
+    let lines = ['Degree distribution (2,532 buses):','','Degree  Count'];
+    Object.keys(degrees).sort((a,b)=>b-a).forEach(d => {
+      lines.push(`${String(d).padStart(6)}  ${String(degrees[d]).padStart(5)}`);
+    });
     el.textContent = lines.join('\n');
-  } else {
-    // Summary for larger systems
-    let lines = [];
-    lines.push('Bus  Degree  Adjacent');
-    lines.push('---  ------  --------');
-    for (let i = 0; i < data.buses; i++) {
-      const neighbors = [];
-      for (let j = 0; j < data.buses; j++) {
-        if (j !== i && Q[i][j] !== 0) neighbors.push(j + 1);
-      }
-      lines.push(`${String(i+1).padStart(3)}  ${String(Q[i][i]).padStart(6)}  {${neighbors.join(',')}}`);
-    }
-    el.textContent = lines.join('\n');
+    return;
   }
+
+  const Q = computeQ(data.buses, data.branches);
+  let lines = [];
+  lines.push('Bus  Degree  Adjacent');
+  lines.push('---  ------  --------');
+  for (let i = 0; i < data.buses; i++) {
+    const neighbors = [];
+    for (let j = 0; j < data.buses; j++) {
+      if (j !== i && Q[i][j] !== 0) neighbors.push(j + 1);
+    }
+    lines.push(`${String(i+1).padStart(3)}  ${String(Q[i][i]).padStart(6)}  {${neighbors.join(',')}}`);
+  }
+  el.textContent = lines.join('\n');
 }
 
 // ============================================================
@@ -868,7 +893,7 @@ function displayQMatrix() {
 function draw() {
   const canvas = document.getElementById('networkCanvas');
   const ctx = canvas.getContext('2d');
-  const data = currentSystem === 'ieee14' ? IEEE14 : IEEE30;
+  const data = getSystemData();
   const adj = getAdjacency(data.buses, data.branches);
   const obs = getObservedBuses(pmuBuses, adj);
 
@@ -879,8 +904,9 @@ function draw() {
   ctx.clearRect(0, 0, cw, ch);
 
   // Draw branches
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = '#2a3a5c';
+  const isLargeSys = data.buses > 200;
+  ctx.lineWidth = isLargeSys ? 0.5 : 1.5;
+  ctx.strokeStyle = isLargeSys ? 'rgba(42,58,92,0.5)' : '#2a3a5c';
   data.branches.forEach(([a, b]) => {
     const pa = pos[a], pb = pos[b];
     if (!pa || !pb) return;
@@ -891,8 +917,9 @@ function draw() {
   });
 
   // Draw buses
-  const busRadius = data.buses <= 14 ? 18 : 14;
-  const fontSize = data.buses <= 14 ? 12 : 10;
+  const isLarge = data.buses > 200;
+  const busRadius = isLarge ? 2.5 : (data.buses <= 14 ? 18 : 14);
+  const fontSize = isLarge ? 0 : (data.buses <= 14 ? 12 : 10);
 
   for (let i = 1; i <= data.buses; i++) {
     const p = pos[i];
@@ -900,8 +927,8 @@ function draw() {
     const isPMU = pmuBuses.has(i);
     const isObs = obs.has(i);
 
-    // Glow for PMU
-    if (isPMU) {
+    // Glow for PMU (skip for large systems to save performance)
+    if (isPMU && !isLarge) {
       const grad = ctx.createRadialGradient(p[0], p[1], busRadius, p[0], p[1], busRadius * 2.5);
       grad.addColorStop(0, 'rgba(231,76,60,0.3)');
       grad.addColorStop(1, 'rgba(231,76,60,0)');
@@ -922,16 +949,20 @@ function draw() {
       ctx.fillStyle = '#95a5a6';
     }
     ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    if (!isLarge) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
 
-    // Bus label
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${fontSize}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(i, p[0], p[1]);
+    // Bus label (skip for large systems)
+    if (!isLarge) {
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(i, p[0], p[1]);
+    }
   }
 
   updateStats(data, adj, obs);
@@ -983,7 +1014,7 @@ function setMethod(method) {
 }
 
 function resetToMethod() {
-  const data = currentSystem === 'ieee14' ? IEEE14 : IEEE30;
+  const data = getSystemData();
   const arr = currentMethod === 'bilp' ? data.bilp : data.xie;
   pmuBuses = new Set(arr);
   draw();
@@ -992,6 +1023,17 @@ function resetToMethod() {
 function initPositions() {
   if (currentSystem === 'ieee14') {
     positions = { ...IEEE14.positions };
+  } else if (currentSystem === 'CREST126' && CREST126 && CREST126.pos) {
+    // CREST126 pos values are normalized 0-1; scale to canvas
+    const canvas = document.getElementById('networkCanvas');
+    const margin = 30;
+    const w = canvas.width - 2 * margin;
+    const h = canvas.height - 2 * margin;
+    positions = {};
+    for (const key in CREST126.pos) {
+      const [nx, ny] = CREST126.pos[key];
+      positions[parseInt(key)] = [margin + nx * w, margin + ny * h];
+    }
   } else {
     const canvas = document.getElementById('networkCanvas');
     positions = forceLayout(IEEE30.buses, IEEE30.branches, canvas.width, canvas.height);
@@ -1007,7 +1049,8 @@ document.getElementById('networkCanvas').addEventListener('click', function(e) {
   const mx = (e.clientX - rect.left) * scaleX;
   const my = (e.clientY - rect.top) * scaleY;
 
-  const data = currentSystem === 'ieee14' ? IEEE14 : IEEE30;
+  const data = getSystemData();
+  if (data.buses > 200) return; // clicking disabled for large systems
   const radius = data.buses <= 14 ? 18 : 14;
 
   for (let i = 1; i <= data.buses; i++) {
@@ -1032,23 +1075,33 @@ async function runGreedyAnimation() {
   pmuBuses = new Set();
   draw();
 
-  const data = currentSystem === 'ieee14' ? IEEE14 : IEEE30;
+  const data = getSystemData();
   const adj = getAdjacency(data.buses, data.branches);
-  const Q = computeQ(data.buses, data.branches);
-  const observed = new Set();
+  const isLarge = data.buses > 200;
 
-  await sleep(400);
+  // For small systems, compute Q matrix for tiebreaker; for large systems, use adj size
+  let degreeOf;
+  if (!isLarge) {
+    const Q = computeQ(data.buses, data.branches);
+    degreeOf = (i) => Q[i - 1][i - 1];
+  } else {
+    degreeOf = (i) => adj[i].size;
+  }
+
+  const observed = new Set();
+  const delay = isLarge ? 30 : 600;
+
+  await sleep(isLarge ? 100 : 400);
 
   while (observed.size < data.buses) {
-    // Find unobserved bus with max degree
+    // Find unobserved bus with max contribution
     let bestBus = -1, bestDeg = -1;
     for (let i = 1; i <= data.buses; i++) {
       if (observed.has(i)) continue;
-      // Count unobserved neighbors + self
-      let contribution = observed.has(i) ? 0 : 1;
+      let contribution = 1; // self
       adj[i].forEach(n => { if (!observed.has(n)) contribution++; });
-      const deg = Q[i - 1][i - 1]; // use degree as tiebreaker
-      if (contribution > bestDeg || (contribution === bestDeg && deg > Q[bestBus - 1][bestBus - 1])) {
+      const deg = degreeOf(i);
+      if (contribution > bestDeg || (contribution === bestDeg && deg > degreeOf(bestBus))) {
         bestDeg = contribution;
         bestBus = i;
       }
@@ -1059,7 +1112,7 @@ async function runGreedyAnimation() {
     observed.add(bestBus);
     adj[bestBus].forEach(n => observed.add(n));
     draw();
-    await sleep(600);
+    await sleep(delay);
   }
 
   animating = false;

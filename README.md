@@ -2,15 +2,18 @@
 
 > **[インタラクティブデモ（GitHub Pages）](https://lutelute.github.io/PMU_placement_problem/)**
 
-15本の論文のアルゴリズムを再現実装し、各論文の結果テーブルと照合検証。14本のインタラクティブデモでPMU配置を直感的に体験できます。
+15本の論文のアルゴリズムを再現実装し、各論文の結果テーブルと照合検証。
+全デモでIEEE標準系統に加え、**CREST 126フィーダ実配電系統（2,532バス）** を選択可能。
 
 ---
 
 ## デモ一覧
 
+### 論文再現（14/15論文）
+
 | # | 論文 | 手法 | デモ |
 |---|------|------|------|
-| 1 | Baldwin (1993) | SA + 二分探索 / Rules 1-3 | [DEMO](https://lutelute.github.io/PMU_placement_problem/paper1_baldwin1993/html/) |
+| 1 | Baldwin (1993) | SA + 二分探索 / Rules 1-3 | [DEMO](https://lutelute.github.io/PMU_placement_problem/implementations/paper1_baldwin1993/html/) |
 | 2 | Gou (2008) | Depth-of-unobservability BILP | [DEMO](https://lutelute.github.io/PMU_placement_problem/implementations/paper2_gou2008/html/) |
 | 3 | Abbasy (2009) | N-1 PMU損失 / LR法 | [DEMO](https://lutelute.github.io/PMU_placement_problem/implementations/paper3_abbasy2009/html/) |
 | 4 | Gou (2014) | 観測性 + 不良データ検出 | [DEMO](https://lutelute.github.io/PMU_placement_problem/implementations/paper4_gou2014/html/) |
@@ -26,6 +29,13 @@
 | 14 | Ahmed (2022) | レビュー（LP/GA/PSO比較） | [DEMO](https://lutelute.github.io/PMU_placement_problem/implementations/paper14_ahmed2022/html/) |
 | 15 | Johnson (2020) | レビュー（ハイブリッド手法） | [DEMO](https://lutelute.github.io/PMU_placement_problem/implementations/paper15_johnson2020/html/) |
 
+### 発展的内容
+
+| デモ | 内容 | 規模 | リンク |
+|------|------|------|--------|
+| 大規模系統 | 合成ネットワークのPMU配置（送配電混在） | 100〜20,000バス | [DEMO](https://lutelute.github.io/PMU_placement_problem/implementations/advanced_large_scale/html/) |
+| CREST 126フィーダ | 東京都市圏6.6kV実配電系統のPMU配置 | 2,532バス / 3変電所 | [DEMO](https://lutelute.github.io/PMU_placement_problem/implementations/advanced_crest126/html/) |
+
 ---
 
 ## 検証結果
@@ -34,11 +44,13 @@
 python run_all_verifications.py
 ```
 
-**14/14論文 PASS — 120+ チェック項目**
+**14/14論文 PASS — 120+ チェック項目** + CREST126実系統検証
 
 ---
 
-## PMU最適配置の基準値（文献コンセンサス）
+## PMU最適配置の基準値
+
+### IEEE標準系統（文献コンセンサス）
 
 | テスト系統 | バス数 | ZIBなし | ZIBあり | N-1 PMU損失 |
 |-----------|--------|---------|---------|------------|
@@ -48,28 +60,58 @@ python run_all_verifications.py
 | IEEE 57 | 57 | 17 | 11 | 35 |
 | IEEE 118 | 118 | 32 | 28 | 75 |
 
+### CREST 126フィーダ実配電系統
+
+| 手法 | PMU数 | PMU/バス比 | 観測性 |
+|------|--------|-----------|--------|
+| BILP（ZIBなし） | 880 | 0.348 | 完全 |
+| BILP + ZIB（線形緩和） | 726 | 0.287 | 不完全（171未観測） |
+| 貪欲法（ZIBあり） | 887 | 0.350 | 完全 |
+
+系統データ: 2,532バス / 2,529ブランチ / 525 ZIB / 3変電所 / 緯度経度座標付き
+
 ---
 
 ## ディレクトリ構成
 
 ```
 PMU_placement_problem/
-├── index.html                 # トップページ（GitHub Pages）
-├── common/                    # 共通フレームワーク
-│   ├── test_systems.py        #   IEEE 14/30/57/118, NE 39 バスデータ
-│   ├── observability.py       #   Rules 1-3 観測性チェック
-│   ├── solvers.py             #   BILP, BILP+ZIB, SA, ハイブリッドソルバー
-│   └── verification.py        #   PaperVerification クラス
-├── implementations/           # 論文別実装
-│   ├── paper1_baldwin1993/    #   各論文ごとに:
-│   │   ├── verify.py          #     再現検証スクリプト
-│   │   └── html/index.html    #     インタラクティブデモ
+├── index.html                     # トップページ（GitHub Pages）
+├── README.md
+├── run_all_verifications.py       # 全論文 + CREST126 一括検証
+├── references.bib                 # BibTeX
+│
+├── common/                        # 共通フレームワーク
+│   ├── test_systems.py            #   IEEE 14/30/57/118, NE 39 バスデータ
+│   ├── observability.py           #   Baldwin Rules 1-3 観測性チェック
+│   ├── solvers.py                 #   BILP, BILP+ZIB, SA, 貪欲法ソルバー
+│   ├── verification.py            #   PaperVerification クラス
+│   └── js/
+│       └── crest126_data.js       #   CREST126共通データ（全デモ共有）
+│
+├── implementations/               # 論文別実装
+│   ├── paper1_baldwin1993/        #   各論文ごとに:
+│   │   ├── verify.py              #     再現検証スクリプト
+│   │   └── html/index.html        #     インタラクティブデモ
 │   ├── paper2_gou2008/
 │   ├── ...
-│   └── paper15_johnson2020/
-├── run_all_verifications.py   # 全論文一括検証
-├── references.bib             # BibTeX
-└── .github/workflows/         # GitHub Pages 自動デプロイ
+│   ├── paper15_johnson2020/
+│   │
+│   ├── advanced_large_scale/      # 発展: 大規模系統（〜20,000バス）
+│   │   └── html/index.html
+│   │
+│   └── advanced_crest126/         # 発展: CREST 126フィーダ実配電系統
+│       ├── verify.py              #   PMU配置検証（BILP/貪欲法/ZIB）
+│       ├── python/parse_crest.py  #   CSVデータパーサー
+│       ├── html/index.html        #   地理的可視化デモ
+│       └── data/                  #   系統データ（CSV + JSON）
+│           ├── node.csv           #     ノード座標（2,532ノード）
+│           ├── Line.csv           #     線路データ（2,554ブランチ）
+│           ├── hload.csv          #     高圧負荷（186件）
+│           ├── Lload.csv          #     柱上変圧器（1,818台）
+│           └── crest126_topology.json  # パース済みトポロジ
+│
+└── .github/workflows/             # GitHub Pages 自動デプロイ
 ```
 
 ---
@@ -188,6 +230,20 @@ LP・GA・PSO各手法カテゴリを網羅した2022年時点の包括的レビ
 Johnson, Moger (2020) — Int. Trans. Elec. Energy Syst. — [DOI](https://doi.org/10.1002/2050-7038.12698)
 
 2003〜2020年の文献を対象に、単一手法からハイブリッド手法（GA+SA、PSO+ILPなど）への発展の潮流を分析。各ハイブリッド手法の組み合わせパターンと性能向上の傾向を整理した。
+
+---
+
+### 発展的内容
+
+**★ 大規模系統のPMU配置（〜20,000バス）**
+
+合成ネットワーク（送電メッシュ・配電放射状・ハイブリッド）を100〜20,000バス規模で生成し、貪欲法によるPMU配置のスケーラビリティを検証。系統規模に対するPMU数の増加傾向（O(N)に近い線形スケーリング）を可視化する。
+
+---
+
+**★ CREST 126フィーダ実配電系統（2,532バス）**
+
+東京都市圏の実在する6.6kV高圧配電系統モデル（CRESR126）。3変電所から分岐する放射状ネットワークに対し、BILP・貪欲法・ZIB解析を適用。各ノードの緯度・経度座標を用いた地理的可視化により、実系統へのPMU配置戦略を検討する。全論文デモからもCREST系統を選択可能。
 
 ---
 

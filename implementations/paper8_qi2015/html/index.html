@@ -452,6 +452,7 @@
     z-index: 100;
   }
 </style>
+<script src="../../../common/js/crest126_data.js"></script>
 </head>
 <body>
 
@@ -935,6 +936,51 @@ canvas.addEventListener('mousemove', (e) => {
 window.addEventListener('resize', () => { resizeCanvas(); draw(); });
 resizeCanvas();
 updateDisplay();
+
+// === CREST126 System Support ===
+let crest126Active = false;
+let originalN, originalBranches;
+
+function initCrest126Selector() {
+  if (typeof CREST126_SYSTEM === 'undefined') return;
+
+  // Find the control area and add a selector
+  const sidebar = document.querySelector('.sidebar') || document.querySelector('.controls') || document.querySelector('.control-group')?.parentElement;
+  if (!sidebar) return;
+
+  const group = document.createElement('div');
+  group.className = 'control-group';
+  group.innerHTML = `
+    <label>テスト系統</label>
+    <select id="crestSystemSelect" onchange="switchCrestSystem(this.value)" style="width:100%;padding:8px;background:#0f0f23;border:1px solid #2a2a4a;color:#c9d1d9;border-radius:4px;font-size:14px;">
+      <option value="default">現在の系統</option>
+      <option value="crest126">CREST 126-Feeder (2,532 buses)</option>
+    </select>
+  `;
+
+  // Insert at top of sidebar
+  const firstGroup = sidebar.querySelector('.control-group');
+  if (firstGroup) {
+    sidebar.insertBefore(group, firstGroup);
+  } else {
+    sidebar.prepend(group);
+  }
+}
+
+function switchCrestSystem(val) {
+  // This is a notification - actual switching depends on paper-specific logic
+  if (val === 'crest126') {
+    alert('CREST 126-Feeder系統 (2,532 buses) は専用デモページで体験できます。\n→ 発展的内容 > CREST 126フィーダ配電系統');
+  }
+}
+
+// Initialize on load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initCrest126Selector);
+} else {
+  initCrest126Selector();
+}
+
 </script>
 </body>
 </html>

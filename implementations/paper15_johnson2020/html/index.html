@@ -235,6 +235,7 @@ canvas { max-width: 100%; }
   color: #fff;
 }
 </style>
+<script src="../../../common/js/crest126_data.js"></script>
 </head>
 <body>
 
@@ -449,6 +450,26 @@ const SYSTEMS = {
   }
 };
 
+// Merge CREST126 system data
+if (typeof CREST126_SYSTEM !== 'undefined') {
+  // Generate positions from normalized coordinates
+  const crestPos = {};
+  if (CREST126_SYSTEM.pos) {
+    for (const [id, [nx, ny]] of Object.entries(CREST126_SYSTEM.pos)) {
+      crestPos[parseInt(id)] = [50 + nx * 700, 30 + ny * 540];
+    }
+  }
+  SYSTEMS.crest126 = {
+    name: CREST126_SYSTEM.name,
+    n: CREST126_SYSTEM.n,
+    branches: CREST126_SYSTEM.branches,
+    zibs: CREST126_SYSTEM.zibs || [],
+    substations: CREST126_SYSTEM.substations || [],
+    pos: crestPos
+  };
+}
+
+
 const METHOD_DATA = [
   { constraint:'Complete Observability', cat:'Conventional', tag:'tag-conv', refs:'Xu & Abur (2004), Gou (2008)', ieee14:'4 PMUs' },
   { constraint:'Complete Observability', cat:'Meta-heuristic', tag:'tag-meta', refs:'Aminifar et al. (2009, GA)', ieee14:'4 PMUs' },
@@ -594,7 +615,7 @@ function draw() {
   });
 
   // Draw buses
-  const R = sysKey === 'ieee30' ? 13 : 16;
+  const R = sys.n > 500 ? 1.5 : (sys.n > 100 ? 3 : (sysKey === 'ieee30' ? 13 : 16));
   for (let i = 1; i <= sys.n; i++) {
     const x = tx(i), y = ty(i);
     ctx.beginPath();

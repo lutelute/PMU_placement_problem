@@ -444,6 +444,7 @@
   .info-badge.optimal { background: rgba(39,174,96,0.2); color: var(--obs-green); }
   .info-badge.suboptimal { background: rgba(231,76,60,0.2); color: var(--pmu-red); }
 </style>
+<script src="../../../common/js/crest126_data.js"></script>
 </head>
 <body>
 
@@ -699,6 +700,26 @@ const SYSTEMS = {
   }
 };
 
+// Merge CREST126 system data
+if (typeof CREST126_SYSTEM !== 'undefined') {
+  // Generate positions from normalized coordinates
+  const crestPos = {};
+  if (CREST126_SYSTEM.pos) {
+    for (const [id, [nx, ny]] of Object.entries(CREST126_SYSTEM.pos)) {
+      crestPos[parseInt(id)] = [50 + nx * 700, 30 + ny * 540];
+    }
+  }
+  SYSTEMS.crest126 = {
+    name: CREST126_SYSTEM.name,
+    n: CREST126_SYSTEM.n,
+    branches: CREST126_SYSTEM.branches,
+    zibs: CREST126_SYSTEM.zibs || [],
+    substations: CREST126_SYSTEM.substations || [],
+    pos: crestPos
+  };
+}
+
+
 let currentSystem = 'ieee14';
 let pmuBuses = new Set();
 let zibMode = false;
@@ -849,7 +870,7 @@ function draw() {
     const isObs = observed.has(i);
     const isZIB = zibMode && sys.zibs.includes(i);
     const isHovered = hoveredBus === i;
-    const radius = isPMU ? 18 : 14;
+    const radius = sys.n > 500 ? 1.5 : (sys.n > 100 ? 3 : (isPMU ? 18 : 14));
 
     // ZIB ring
     if (isZIB) {

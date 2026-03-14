@@ -430,6 +430,7 @@
     line-height: 1.5;
   }
 </style>
+<script src="../../../common/js/crest126_data.js"></script>
 </head>
 <body>
 
@@ -652,6 +653,26 @@ const SYSTEMS = {
     }
   }
 };
+
+// Merge CREST126 system data
+if (typeof CREST126_SYSTEM !== 'undefined') {
+  // Generate positions from normalized coordinates
+  const crestPos = {};
+  if (CREST126_SYSTEM.pos) {
+    for (const [id, [nx, ny]] of Object.entries(CREST126_SYSTEM.pos)) {
+      crestPos[parseInt(id)] = [50 + nx * 700, 30 + ny * 540];
+    }
+  }
+  SYSTEMS.crest126 = {
+    name: CREST126_SYSTEM.name,
+    n: CREST126_SYSTEM.n,
+    branches: CREST126_SYSTEM.branches,
+    zibs: CREST126_SYSTEM.zibs || [],
+    substations: CREST126_SYSTEM.substations || [],
+    pos: crestPos
+  };
+}
+
 
 // =============================================================================
 // State
@@ -897,7 +918,7 @@ function draw() {
   }
 
   // Draw nodes
-  const R = n > 40 ? 14 : (n > 20 ? 18 : 22);
+  const R = n > 500 ? 1.5 : (n > 100 ? 3 : (n > 40 ? 14 : (n > 20 ? 18 : 22)));
   for (let bus = 1; bus <= n; bus++) {
     const p = busPositions[bus];
     if (!p) continue;

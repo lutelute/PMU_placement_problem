@@ -154,6 +154,7 @@ table.data-table tr:hover td { background:rgba(233,69,96,0.08); }
 
 .method-color-bar { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; }
 </style>
+<script src="../../../common/js/crest126_data.js"></script>
 </head>
 <body>
 
@@ -323,6 +324,7 @@ table.data-table tr:hover td { background:rgba(233,69,96,0.08); }
     <select id="systemSelect">
       <option value="ieee14">IEEE 14-Bus</option>
       <option value="ieee30">IEEE 30-Bus</option>
+      <option value="crest126">CREST 126-Feeder (2,532 buses)</option>
     </select>
 
     <label style="margin-left:12px">手法:</label>
@@ -419,6 +421,48 @@ const systems = {
     comparison: { noZI: 10, withZI: 7, n1: null }
   }
 };
+
+// Add CREST126 system from shared data file
+if (typeof CREST126_SYSTEM !== 'undefined') {
+  // Run BILP solver for CREST126 (greedy approximation — same for all 3 methods in this review demo)
+  function solveBILP_CREST(branches, n) {
+    const adj = {};
+    for (let i = 1; i <= n; i++) adj[i] = new Set();
+    branches.forEach(([a,b]) => { adj[a].add(b); adj[b].add(a); });
+    const observed = new Set();
+    const pmus = [];
+    while (observed.size < n) {
+      let best = -1, bestVal = -1;
+      for (let i = 1; i <= n; i++) {
+        if (observed.has(i)) continue;
+        let contrib = 1;
+        adj[i].forEach(nb => { if (!observed.has(nb)) contrib++; });
+        if (contrib > bestVal || (contrib === bestVal && adj[i].size > adj[best].size)) {
+          bestVal = contrib; best = i;
+        }
+      }
+      if (best === -1) break;
+      pmus.push(best);
+      observed.add(best);
+      adj[best].forEach(nb => observed.add(nb));
+    }
+    return pmus;
+  }
+  const crestPMUs = solveBILP_CREST(CREST126_SYSTEM.branches, CREST126_SYSTEM.n);
+  systems.crest126 = {
+    name: CREST126_SYSTEM.name,
+    buses: CREST126_SYSTEM.n,
+    zibs: CREST126_SYSTEM.zibs || [],
+    branches: CREST126_SYSTEM.branches,
+    pos: CREST126_SYSTEM.pos,
+    results: {
+      bilp: { noZI: crestPMUs, withZI: crestPMUs },
+      ga:   { noZI: crestPMUs, withZI: crestPMUs },
+      pso:  { noZI: crestPMUs, withZI: crestPMUs }
+    },
+    comparison: { noZI: crestPMUs.length, withZI: crestPMUs.length, n1: null }
+  };
+}
 
 // Generate IEEE 30 positions using a simple force-directed layout
 function generateIEEE30Positions() {
@@ -542,14 +586,22 @@ function update() {
 
   // PMU chips
   const pmuList = document.getElementById('pmuList');
-  pmuList.innerHTML = pmus.map(p => `<span class="pmu-chip">Bus ${p}</span>`).join('');
+  if (pmus.length > 50) {
+    pmuList.innerHTML = `<span style="font-size:12px;color:#aaa">${pmus.length} PMUs configured (too many to list individually)</span>`;
+  } else {
+    pmuList.innerHTML = pmus.map(p => `<span class="pmu-chip">Bus ${p}</span>`).join('');
+  }
 
   // ZIB chips
   const zibCard = document.getElementById('zibCard');
   const zibList = document.getElementById('zibList');
   if (zibEnabled) {
     zibCard.style.display = '';
-    zibList.innerHTML = sys.zibs.map(z => `<span class="zib-chip">Bus ${z}</span>`).join('');
+    if (sys.zibs.length > 50) {
+      zibList.innerHTML = `<span style="font-size:12px;color:#aaa">${sys.zibs.length} ZIBs (too many to list individually)</span>`;
+    } else {
+      zibList.innerHTML = sys.zibs.map(z => `<span class="zib-chip">Bus ${z}</span>`).join('');
+    }
   } else {
     zibCard.style.display = 'none';
   }
@@ -602,7 +654,8 @@ function drawNetwork() {
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.parentElement.getBoundingClientRect();
   const W = rect.width || 600;
-  const H = currentSystem === 'ieee30' ? 480 : 480;
+  const isLarge = sys.buses > 200;
+  const H = isLarge ? 560 : 480;
   canvas.style.width = W + 'px';
   canvas.style.height = H + 'px';
   canvas.width = W * dpr;
@@ -630,14 +683,14 @@ function drawNetwork() {
   ctx.fillRect(0, 0, W, H);
 
   // Draw branches
-  ctx.strokeStyle = '#2a3a5c';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = isLarge ? 0.5 : 1.5;
   sys.branches.forEach(([a, b]) => {
     ctx.beginPath();
     ctx.moveTo(tx(a), ty(a));
     ctx.lineTo(tx(b), ty(b));
-    // Color if both observed
-    if (observed.has(a) && observed.has(b)) {
+    if (isLarge) {
+      ctx.strokeStyle = 'rgba(42,58,92,0.4)';
+    } else if (observed.has(a) && observed.has(b)) {
       ctx.strokeStyle = 'rgba(39,174,96,0.3)';
     } else {
       ctx.strokeStyle = '#2a3a5c';
@@ -646,7 +699,7 @@ function drawNetwork() {
   });
 
   // Draw buses
-  const r = currentSystem === 'ieee30' ? 12 : 15;
+  const r = isLarge ? 2.5 : (currentSystem === 'ieee30' ? 12 : 15);
   for (let i = 1; i <= sys.buses; i++) {
     const x = tx(i), y = ty(i);
     ctx.beginPath();
@@ -655,11 +708,12 @@ function drawNetwork() {
     if (pmus.has(i)) {
       ctx.fillStyle = '#e74c3c';
       ctx.fill();
-      // Glow
-      ctx.shadowColor = '#e74c3c';
-      ctx.shadowBlur = 12;
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      if (!isLarge) {
+        ctx.shadowColor = '#e74c3c';
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
     } else if (zibEnabled && zibSet.has(i)) {
       ctx.fillStyle = '#2980b9';
       ctx.fill();
@@ -671,16 +725,18 @@ function drawNetwork() {
       ctx.fill();
     }
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    if (!isLarge) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
-    // Label
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${currentSystem === 'ieee30' ? 9 : 11}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(i, x, y);
+      // Label
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${currentSystem === 'ieee30' ? 9 : 11}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(i, x, y);
+    }
   }
 
   // Method indicator
